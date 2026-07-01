@@ -92,27 +92,26 @@ describe('LicenseWebpackPlugin integration', () => {
     expect(parsed.some((item) => item.name === 'lodash')).toBe(true);
   });
 
-  it('includes dependency license text when includeLicenseText is true', async () => {
-    const fixtureRoot = path.resolve(__dirname, 'fixtures/include-license-text');
+  // The two tests below exercise includeLicenseText using lodash, a real open-source
+  // package already present in the repository's devDependencies.  lodash has a
+  // well-known MIT license whose text begins with "Copyright OpenJS Foundation".
+  it('includes dependency license text when includeLicenseText is true (lodash)', async () => {
+    const workspaceRoot = path.resolve(__dirname, '../..');
     const outputPath = prepareOutputDir('include-license-text-true');
 
     const stats = await runWebpack({
-      context: fixtureRoot,
       mode: 'development',
-      entry: path.join(fixtureRoot, 'entry.js'),
+      entry: path.resolve(__dirname, 'fixtures/entry.js'),
       output: {
         path: outputPath,
         filename: 'bundle.js',
-      },
-      resolve: {
-        modules: [path.join(fixtureRoot, 'node_modules'), 'node_modules'],
       },
       plugins: [
         new LicenseWebpackPlugin({
           filename: 'licenses.txt',
           format: 'txt',
           includeLicenseText: true,
-          workspaceRoot: fixtureRoot,
+          workspaceRoot,
         }),
       ],
     });
@@ -122,32 +121,29 @@ describe('LicenseWebpackPlugin integration', () => {
     expect(fs.existsSync(path.join(outputPath, 'bundle.js'))).toBe(true);
     expect(fs.existsSync(licenseFile)).toBe(true);
     const content = fs.readFileSync(licenseFile, 'utf-8');
-    expect(content).toContain('dep-a');
+    expect(content).toContain('lodash');
     expect(content).toContain('License Text:');
-    expect(content).toContain('MIT License\nCopyright (c) 2026 Dep A');
+    // Stable prefix from lodash's LICENSE file
+    expect(content).toContain('Copyright OpenJS Foundation');
   });
 
-  it('omits dependency license text when includeLicenseText is false', async () => {
-    const fixtureRoot = path.resolve(__dirname, 'fixtures/include-license-text');
+  it('omits dependency license text when includeLicenseText is false (lodash)', async () => {
+    const workspaceRoot = path.resolve(__dirname, '../..');
     const outputPath = prepareOutputDir('include-license-text-false');
 
     const stats = await runWebpack({
-      context: fixtureRoot,
       mode: 'development',
-      entry: path.join(fixtureRoot, 'entry.js'),
+      entry: path.resolve(__dirname, 'fixtures/entry.js'),
       output: {
         path: outputPath,
         filename: 'bundle.js',
-      },
-      resolve: {
-        modules: [path.join(fixtureRoot, 'node_modules'), 'node_modules'],
       },
       plugins: [
         new LicenseWebpackPlugin({
           filename: 'licenses.txt',
           format: 'txt',
           includeLicenseText: false,
-          workspaceRoot: fixtureRoot,
+          workspaceRoot,
         }),
       ],
     });
@@ -157,8 +153,8 @@ describe('LicenseWebpackPlugin integration', () => {
     expect(fs.existsSync(path.join(outputPath, 'bundle.js'))).toBe(true);
     expect(fs.existsSync(licenseFile)).toBe(true);
     const content = fs.readFileSync(licenseFile, 'utf-8');
-    expect(content).toContain('dep-a');
+    expect(content).toContain('lodash');
     expect(content).not.toContain('License Text:');
-    expect(content).not.toContain('MIT License\nCopyright (c) 2026 Dep A');
+    expect(content).not.toContain('Copyright OpenJS Foundation');
   });
 });
