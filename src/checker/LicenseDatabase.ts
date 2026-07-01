@@ -88,6 +88,9 @@ export class LicenseDatabase {
           excludePrivatePackages: false,
           production: false,
           includeLicenseText: true,
+          customFormat: {
+            licenseText: true,
+          },
         },
         (err, packages) => {
           if (err) {
@@ -120,6 +123,9 @@ export class LicenseDatabase {
       excludePrivatePackages: false,
       production: false,
       includeLicenseText: true,
+      customFormat: {
+        licenseText: true,
+      },
     });
 
     return new Promise((resolve, reject) => {
