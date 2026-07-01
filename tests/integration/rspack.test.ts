@@ -16,7 +16,10 @@ import * as path from 'path';
 import type { Configuration, Stats } from '@rspack/core';
 import { LicenseWebpackPlugin } from '../../dist/LicenseWebpackPlugin';
 
-jest.setTimeout(60000);
+/** Maximum time (ms) to allow a single Rspack build to complete in CI. */
+const RSPACK_BUILD_TIMEOUT = 60_000;
+
+jest.setTimeout(RSPACK_BUILD_TIMEOUT);
 
 function runRspack(config: Configuration): Promise<Stats> {
   // Require at runtime to avoid a hard compile-time dependency on webpack.

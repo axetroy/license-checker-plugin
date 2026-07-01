@@ -77,6 +77,13 @@ export interface LicenseWebpackPluginOptions {
 
 const PLUGIN_NAME = 'LicenseWebpackPlugin';
 
+/**
+ * Fallback stage value for processAssets used when compiler.webpack is not
+ * available.  Matches Compilation.PROCESS_ASSETS_STAGE_REPORT in webpack 5
+ * and Rspack (both define this constant as 5000).
+ */
+const DEFAULT_PROCESS_ASSETS_STAGE_REPORT = 5000;
+
 export class LicenseWebpackPlugin implements WebpackPluginInstance {
   private readonly options: Required<Omit<LicenseWebpackPluginOptions, 'recorder' | 'waitForRecorderCount'>> & {
     recorder: Recorder | undefined;
@@ -118,7 +125,8 @@ export class LicenseWebpackPlugin implements WebpackPluginInstance {
     const wp = (compiler as { webpack?: typeof import('webpack') }).webpack;
 
     // PROCESS_ASSETS_STAGE_REPORT is 5000 in webpack 5 and Rspack.
-    const processAssetsStageReport = wp?.Compilation?.PROCESS_ASSETS_STAGE_REPORT ?? 5000;
+    const processAssetsStageReport =
+      wp?.Compilation?.PROCESS_ASSETS_STAGE_REPORT ?? DEFAULT_PROCESS_ASSETS_STAGE_REPORT;
 
     compiler.hooks.thisCompilation.tap(PLUGIN_NAME, (compilation) => {
       compilation.hooks.processAssets.tapPromise(
