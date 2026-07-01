@@ -59,7 +59,7 @@ describe('LicenseWebpackPlugin integration', () => {
     expect(fs.existsSync(path.join(outputPath, 'bundle.js'))).toBe(true);
     expect(fs.existsSync(licenseFile)).toBe(true);
     const content = fs.readFileSync(licenseFile, 'utf-8');
-    expect(content).toContain('Third Party Licenses');
+    expect(content).toContain('# THIRD-PARTY LICENSES');
     expect(content).toContain('lodash');
   });
 
