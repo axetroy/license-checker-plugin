@@ -91,4 +91,70 @@ describe('LicenseWebpackPlugin integration', () => {
     expect(Array.isArray(parsed)).toBe(true);
     expect(parsed.some((item) => item.name === 'lodash')).toBe(true);
   });
+
+  // The two tests below exercise includeLicenseText using lodash, a real open-source
+  // package already present in the repository's devDependencies.  lodash has a
+  // well-known MIT license whose text begins with "Copyright OpenJS Foundation".
+  it('includes dependency license text when includeLicenseText is true', async () => {
+    const workspaceRoot = path.resolve(__dirname, '../..');
+    const outputPath = prepareOutputDir('include-license-text-true');
+
+    const stats = await runWebpack({
+      mode: 'development',
+      entry: path.resolve(__dirname, 'fixtures/entry.js'),
+      output: {
+        path: outputPath,
+        filename: 'bundle.js',
+      },
+      plugins: [
+        new LicenseWebpackPlugin({
+          filename: 'licenses.txt',
+          format: 'txt',
+          includeLicenseText: true,
+          workspaceRoot,
+        }),
+      ],
+    });
+
+    expect(stats.hasErrors()).toBe(false);
+    const licenseFile = path.join(outputPath, 'licenses.txt');
+    expect(fs.existsSync(path.join(outputPath, 'bundle.js'))).toBe(true);
+    expect(fs.existsSync(licenseFile)).toBe(true);
+    const content = fs.readFileSync(licenseFile, 'utf-8');
+    expect(content).toContain('lodash');
+    expect(content).toContain('License Text:');
+    // Stable prefix from lodash's LICENSE file
+    expect(content).toContain('Copyright OpenJS Foundation');
+  });
+
+  it('omits dependency license text when includeLicenseText is false', async () => {
+    const workspaceRoot = path.resolve(__dirname, '../..');
+    const outputPath = prepareOutputDir('include-license-text-false');
+
+    const stats = await runWebpack({
+      mode: 'development',
+      entry: path.resolve(__dirname, 'fixtures/entry.js'),
+      output: {
+        path: outputPath,
+        filename: 'bundle.js',
+      },
+      plugins: [
+        new LicenseWebpackPlugin({
+          filename: 'licenses.txt',
+          format: 'txt',
+          includeLicenseText: false,
+          workspaceRoot,
+        }),
+      ],
+    });
+
+    expect(stats.hasErrors()).toBe(false);
+    const licenseFile = path.join(outputPath, 'licenses.txt');
+    expect(fs.existsSync(path.join(outputPath, 'bundle.js'))).toBe(true);
+    expect(fs.existsSync(licenseFile)).toBe(true);
+    const content = fs.readFileSync(licenseFile, 'utf-8');
+    expect(content).toContain('lodash');
+    expect(content).not.toContain('License Text:');
+    expect(content).not.toContain('Copyright OpenJS Foundation');
+  });
 });
