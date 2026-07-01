@@ -55,6 +55,9 @@ module.exports = {
 | `deduplicateLicense` | `boolean` | `true` | Suppress repeated license text bodies |
 | `cache` | `boolean` | `true` | Reuse the in-memory license database |
 | `workspaceRoot` | `string` | `compiler.context` | Root path passed to license-checker |
+| `recorder` | `Recorder` | — | External recorder shared across compiler instances (see [Multi-compiler usage](#multi-compiler-usage)) |
+| `recordOnly` | `boolean` | `false` | Record findings into `recorder` but do not emit a license asset |
+| `waitForRecorderCount` | `number` | — | Wait for this many reports in `recorder` before merging all reports and emitting the combined asset |
 
 ## Output formats
 
@@ -81,6 +84,59 @@ new LicenseWebpackPlugin({
   failOn: ['GPL-3.0', 'AGPL-3.0'],
 });
 ```
+
+## Multi-compiler usage
+
+When using webpack's [multi-compiler](https://webpack.js.org/configuration/configuration-types/#exporting-multiple-configurations) mode (an array of configurations) each compiler runs independently. The `recorder` option lets all instances share a single `DefaultRecorder` so that one primary instance can merge all their findings and emit a single combined license file.
+
+```js
+const { LicenseWebpackPlugin, DefaultRecorder } = require('license-webpack-plugin');
+
+// Create a shared recorder before the webpack configs are built.
+const sharedRecorder = new DefaultRecorder();
+
+module.exports = [
+  // Secondary compiler – records its findings but does not emit a file.
+  {
+    name: 'renderer',
+    entry: './src/renderer/index.js',
+    plugins: [
+      new LicenseWebpackPlugin({
+        recorder: sharedRecorder,
+        recordOnly: true,
+      }),
+    ],
+  },
+
+  // Primary compiler – records its own findings, then waits for both reports
+  // (one from itself, one from the renderer) and emits the merged file.
+  {
+    name: 'main',
+    entry: './src/main/index.js',
+    plugins: [
+      new LicenseWebpackPlugin({
+        filename: 'third-party-licenses.txt',
+        recorder: sharedRecorder,
+        waitForRecorderCount: 2, // total number of compiler instances
+      }),
+    ],
+  },
+];
+```
+
+### `Recorder` interface
+
+You can supply a custom recorder by implementing the `Recorder` interface:
+
+```ts
+export interface Recorder {
+  record(report: LicenseBuildReport): void;
+  getReports(): LicenseBuildReport[];
+  waitForReports(expectedCount?: number, timeoutMs?: number): Promise<LicenseBuildReport[]>;
+}
+```
+
+`DefaultRecorder` is the built-in implementation. It stores reports in memory and resolves `waitForReports` as soon as the expected count is reached (polling every 100 ms, timing out after 30 s by default).
 
 ## Development
 

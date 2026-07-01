@@ -6,6 +6,8 @@ import { JsonFormatter } from './formatter/JsonFormatter';
 import { MarkdownFormatter } from './formatter/MarkdownFormatter';
 import { TxtFormatter } from './formatter/TxtFormatter';
 import { LicenseInfo, OutputItem } from './model/LicenseInfo';
+import { LicenseBuildReport } from './model/LicenseBuildReport';
+import { Recorder } from './Recorder';
 import { PackageScanner } from './scanner/PackageScanner';
 
 export type OutputFormat = 'txt' | 'json' | 'markdown' | 'html';
@@ -28,12 +30,29 @@ export interface LicenseWebpackPluginOptions {
   deduplicateLicense?: boolean;
   cache?: boolean;
   workspaceRoot?: string;
+  /** External recorder shared across multiple compiler instances. */
+  recorder?: Recorder;
+  /**
+   * When true the plugin records its findings into `recorder` but does not
+   * emit a license asset.  Use this on every secondary compiler instance.
+   */
+  recordOnly?: boolean;
+  /**
+   * When set (and `recorder` is provided) the plugin waits until the recorder
+   * has collected this many reports before merging all of them and emitting
+   * the combined license asset.  Use this on the single primary compiler
+   * instance that is responsible for producing the final file.
+   */
+  waitForRecorderCount?: number;
 }
 
 const PLUGIN_NAME = 'LicenseWebpackPlugin';
 
 export class LicenseWebpackPlugin implements WebpackPluginInstance {
-  private readonly options: Required<LicenseWebpackPluginOptions>;
+  private readonly options: Required<Omit<LicenseWebpackPluginOptions, 'recorder' | 'waitForRecorderCount'>> & {
+    recorder: Recorder | undefined;
+    waitForRecorderCount: number | undefined;
+  };
   private db: LicenseDatabase;
 
   constructor(options: LicenseWebpackPluginOptions = {}) {
@@ -55,6 +74,9 @@ export class LicenseWebpackPlugin implements WebpackPluginInstance {
       deduplicateLicense: options.deduplicateLicense !== false,
       cache: options.cache !== false,
       workspaceRoot: options.workspaceRoot || '',
+      recorder: options.recorder,
+      recordOnly: options.recordOnly === true,
+      waitForRecorderCount: options.waitForRecorderCount,
     };
     this.db = new LicenseDatabase();
   }
@@ -144,6 +166,43 @@ export class LicenseWebpackPlugin implements WebpackPluginInstance {
       }
 
       items.push({ package: pkgInfo, license: normalizedLicense });
+    }
+
+    // Record this compilation's findings if a recorder is provided.
+    if (this.options.recorder) {
+      const report: LicenseBuildReport = { items };
+      this.options.recorder.record(report);
+    }
+
+    // In record-only mode, skip emitting the asset.
+    if (this.options.recordOnly) {
+      return;
+    }
+
+    // If a recorder is provided and a count is expected, wait for all reports
+    // and merge them before emitting the combined asset.
+    if (this.options.recorder && this.options.waitForRecorderCount !== undefined) {
+      let allReports: LicenseBuildReport[];
+      try {
+        allReports = await this.options.recorder.waitForReports(this.options.waitForRecorderCount);
+      } catch (error) {
+        compilation.errors.push(error as Error);
+        return;
+      }
+
+      // Merge items from all reports and deduplicate by package name+version.
+      const seen = new Set<string>();
+      const mergedItems: OutputItem[] = [];
+      for (const report of allReports) {
+        for (const item of report.items) {
+          const key = `${item.package.name}@${item.package.version}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            mergedItems.push(item);
+          }
+        }
+      }
+      items = mergedItems;
     }
 
     if (this.options.sort) {
