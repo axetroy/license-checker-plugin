@@ -1,4 +1,4 @@
-import { Chunk, Compilation, Module } from 'webpack';
+import type { Chunk, Compilation, Module } from 'webpack';
 import { PackageInfo } from '../model/PackageInfo';
 import { PackageResolver } from './PackageResolver';
 

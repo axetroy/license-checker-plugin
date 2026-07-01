@@ -1,4 +1,8 @@
-import { Compilation, Compiler, WebpackPluginInstance, sources } from 'webpack';
+// Type-only import: webpack is a peer dependency used only for TypeScript types.
+// At runtime, webpack (or any compatible bundler such as Rspack) is obtained
+// from compiler.webpack inside apply() to avoid hard-coding a runtime dependency
+// on the webpack package.
+import type { Compilation, Compiler, WebpackPluginInstance } from 'webpack';
 import { LicenseDatabase } from './checker/LicenseDatabase';
 import { Formatter } from './formatter/Formatter';
 import { HtmlFormatter } from './formatter/HtmlFormatter';
@@ -107,15 +111,24 @@ export class LicenseWebpackPlugin implements WebpackPluginInstance {
   }
 
   apply(compiler: Compiler): void {
+    // Obtain webpack (or the host bundler such as Rspack) from the compiler
+    // object rather than importing it directly.  Both webpack 5 and Rspack
+    // expose the bundler namespace as compiler.webpack, which provides
+    // Compilation constants and the sources API needed by this plugin.
+    const wp = (compiler as { webpack?: typeof import('webpack') }).webpack;
+
+    // PROCESS_ASSETS_STAGE_REPORT is 5000 in webpack 5 and Rspack.
+    const processAssetsStageReport = wp?.Compilation?.PROCESS_ASSETS_STAGE_REPORT ?? 5000;
+
     compiler.hooks.thisCompilation.tap(PLUGIN_NAME, (compilation) => {
       compilation.hooks.processAssets.tapPromise(
         {
           name: PLUGIN_NAME,
-          stage: Compilation.PROCESS_ASSETS_STAGE_REPORT,
+          stage: processAssetsStageReport,
         },
         async () => {
           try {
-            await this.generateLicenses(compiler, compilation);
+            await this.generateLicenses(compiler, compilation, wp);
           } catch (error) {
             compilation.errors.push(error as Error);
           }
@@ -124,7 +137,11 @@ export class LicenseWebpackPlugin implements WebpackPluginInstance {
     });
   }
 
-  private async generateLicenses(compiler: Compiler, compilation: Compilation): Promise<void> {
+  private async generateLicenses(
+    compiler: Compiler,
+    compilation: Compilation,
+    wp: typeof import('webpack') | undefined
+  ): Promise<void> {
     const startPath = this.options.workspaceRoot || compiler.context;
 
     if (!this.options.cache) {
@@ -235,7 +252,21 @@ export class LicenseWebpackPlugin implements WebpackPluginInstance {
     }
 
     const formatter = this.createFormatter();
-    compilation.emitAsset(this.options.filename, new sources.RawSource(formatter.generate(items)));
+
+    // Use the sources API from the bundler namespace obtained in apply().
+    // If it is not available, emit a warning and skip asset generation rather
+    // than throwing, so the build does not fail unexpectedly.
+    const sourcesApi = wp?.sources;
+    if (!sourcesApi) {
+      compilation.warnings.push(
+        new Error(
+          'LicenseWebpackPlugin: bundler sources API not available on compiler.webpack; ' +
+            'license asset will not be emitted. Ensure you are using webpack 5 or Rspack.'
+        )
+      );
+      return;
+    }
+    compilation.emitAsset(this.options.filename, new sourcesApi.RawSource(formatter.generate(items)));
   }
 
   private filterLicenseFields(licenseInfo: LicenseInfo): LicenseInfo {
