@@ -7,9 +7,12 @@ jest.setTimeout(60000);
 
 function runWebpack(config: webpack.Configuration | webpack.Configuration[]): Promise<webpack.Stats | webpack.MultiStats> {
   return new Promise((resolve, reject) => {
-    const compiler = Array.isArray(config)
-      ? webpack(config as webpack.Configuration[])
-      : webpack(config as webpack.Configuration);
+    let compiler: webpack.Compiler | webpack.MultiCompiler;
+    if (Array.isArray(config)) {
+      compiler = webpack(config);
+    } else {
+      compiler = webpack(config);
+    }
     compiler.run((err, stats) => {
       if (err) {
         reject(err);

@@ -44,7 +44,6 @@ interface CompilerMergeState {
   reports: Map<number, LicenseBuildReport>;
   knownCompilers: Set<number>;
   completedCompilers: Set<number>;
-  completedCount: number;
   startedAt: number;
   lastCompilation?: Compilation;
   emitted: boolean;
@@ -135,10 +134,6 @@ export class LicenseWebpackPlugin implements WebpackPluginInstance {
   apply(compiler: Compiler | MultiCompiler): void {
     const multiCompiler = compiler as MultiCompiler & { compilers?: Compiler[] };
     if (Array.isArray(multiCompiler.compilers)) {
-      if (this.options.mergeAcrossCompilers) {
-        const mergeState = this.getOrCreateMergeState(this.resolveMergeKey(multiCompiler.compilers[0]));
-        mergeState.expectedCount = multiCompiler.compilers.length;
-      }
       for (const childCompiler of multiCompiler.compilers) {
         this.apply(childCompiler);
       }
@@ -185,7 +180,13 @@ export class LicenseWebpackPlugin implements WebpackPluginInstance {
     if (mergeState) {
       webpackCompiler.hooks.done.tap(PLUGIN_NAME, () => {
         mergeState.completedCompilers.add(compilerId);
-        mergeState.completedCount = mergeState.completedCompilers.size;
+        if (
+          typeof mergeState.expectedCount === 'number' &&
+          mergeState.completedCompilers.size >= mergeState.expectedCount &&
+          !mergeState.emitted
+        ) {
+          LicenseWebpackPlugin.mergeStates.delete(mergeKey);
+        }
       });
     }
   }
@@ -292,7 +293,7 @@ export class LicenseWebpackPlugin implements WebpackPluginInstance {
     if (typeof mergeState.expectedCount === 'number') {
       return mergeState.reports.size >= mergeState.expectedCount;
     }
-    return !this.options.mergeWhenAllCompilersDone;
+    return false;
   }
 
   private emitMergedReport(mergeKey: string, mergeState: CompilerMergeState): void {
@@ -338,7 +339,6 @@ export class LicenseWebpackPlugin implements WebpackPluginInstance {
         reports: new Map<number, LicenseBuildReport>(),
         knownCompilers: new Set<number>(),
         completedCompilers: new Set<number>(),
-        completedCount: 0,
         startedAt: Date.now(),
         emitted: false,
       };
@@ -346,11 +346,7 @@ export class LicenseWebpackPlugin implements WebpackPluginInstance {
     }
     if (typeof compilerId === 'number') {
       mergeState.knownCompilers.add(compilerId);
-      if (typeof mergeState.expectedCount !== 'number') {
-        mergeState.expectedCount = mergeState.knownCompilers.size;
-      } else {
-        mergeState.expectedCount = Math.max(mergeState.expectedCount, mergeState.knownCompilers.size);
-      }
+      mergeState.expectedCount = Math.max(mergeState.expectedCount ?? 0, mergeState.knownCompilers.size);
     }
     return mergeState;
   }
