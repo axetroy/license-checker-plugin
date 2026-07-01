@@ -59,6 +59,59 @@ module.exports = {
 | `recordOnly` | `boolean` | `false` | Record findings into `recorder` but do not emit a license asset |
 | `waitForRecorderCount` | `number` | — | Wait for this many reports in `recorder` before merging all reports and emitting the combined asset |
 
+## Filtering dependencies by package or license
+
+The plugin starts with the set of dependency entries detected from the webpack module graph, resolves license metadata for those entries, and then applies the configured filters. Package names and license names are matched with exact, case-sensitive string comparison.
+
+### Filter options
+
+- `includePackages`: keep only entries whose package name is listed.
+- `excludePackages`: remove entries whose package name is listed.
+- `includeLicenses`: keep only entries whose resolved license is listed.
+- `excludeLicenses`: remove entries whose resolved license is listed.
+
+### Evaluation order and precedence
+
+If `includeChunks` is configured, chunk filtering runs first. After that, the package/license filters are applied in this order:
+
+1. `includePackages`
+2. `excludePackages`
+3. `includeLicenses`
+4. `excludeLicenses`
+
+This means:
+
+- include filters narrow the current result set
+- exclude filters run afterward and have the final removal effect
+- when both `includePackages` and `includeLicenses` are set, an entry must satisfy both include filters to remain
+- matching either `excludePackages` or `excludeLicenses` removes the entry, even if it matched an include filter earlier
+
+### Transitive dependency behavior
+
+`excludePackages` is entry-based. Excluding `foo` removes the `foo` entry itself, but it does not automatically remove every dependency that `foo` depends on. A child or other transitive dependency still appears in the final output unless that dependency also fails another filter on its own.
+
+For example, if `foo` depends on `bar` and `baz`, and only `foo` matches `excludePackages`, then `bar` and `baz` can still appear if webpack includes them and they do not match any exclusion rule.
+
+### Combined filter example
+
+```js
+new LicenseWebpackPlugin({
+  includePackages: ['lodash', 'react', 'react-dom'],
+  includeLicenses: ['MIT'],
+  excludePackages: ['react-dom'],
+  excludeLicenses: ['MIT-0'],
+});
+```
+
+With this configuration:
+
+- the plugin first keeps only `lodash`, `react`, and `react-dom`
+- it removes `react-dom` because package exclusion runs after package inclusion
+- it keeps only the remaining entries whose resolved license is `MIT`
+- it removes any remaining entry whose resolved license is `MIT-0`
+
+So the final output is the intersection of the include filters, minus anything matched by either exclude filter.
+
 ## Output formats
 
 ### TXT

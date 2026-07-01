@@ -19,9 +19,34 @@ export interface LicenseWebpackPluginOptions {
   includeRepository?: boolean;
   includeHomepage?: boolean;
   includeAuthor?: boolean;
+  /**
+   * Only include dependency entries whose package name exactly matches one of
+   * the provided values. Matching is case-sensitive. When combined with
+   * `includeLicenses`, a dependency must satisfy both include filters to remain
+   * in the result set.
+   */
   includePackages?: string[];
+  /**
+   * Exclude dependency entries whose package name exactly matches one of the
+   * provided values. Matching is case-sensitive. This runs after
+   * `includePackages`, so matching entries are removed even if they were
+   * previously included. Exclusion is entry-based and does not automatically
+   * remove transitive dependencies unless those entries also match an exclusion
+   * rule.
+   */
   excludePackages?: string[];
+  /**
+   * Only include dependency entries whose resolved license exactly matches one
+   * of the provided values. Matching is case-sensitive. This runs after the
+   * package filters, so it further narrows the remaining result set.
+   */
   includeLicenses?: string[];
+  /**
+   * Exclude dependency entries whose resolved license exactly matches one of
+   * the provided values. Matching is case-sensitive. This runs after
+   * `includeLicenses`, so matching entries are removed even if they were
+   * previously included by package name or license.
+   */
   excludeLicenses?: string[];
   onlyAllow?: string[];
   failOn?: string[];
