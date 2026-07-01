@@ -4,11 +4,20 @@ import { Formatter } from './formatter/Formatter';
 import { HtmlFormatter } from './formatter/HtmlFormatter';
 import { JsonFormatter } from './formatter/JsonFormatter';
 import { MarkdownFormatter } from './formatter/MarkdownFormatter';
+import { ReportFormatter } from './formatter/ReportFormatter';
 import { TxtFormatter } from './formatter/TxtFormatter';
+import { LicenseBuildReport } from './model/BuildReport';
 import { LicenseInfo, OutputItem } from './model/LicenseInfo';
 import { PackageScanner } from './scanner/PackageScanner';
 
 export type OutputFormat = 'txt' | 'json' | 'markdown' | 'html';
+export type OutputMode = 'per-compilation' | 'report-only' | 'aggregate';
+
+export interface MergeReportsOptions {
+  deduplicate?: boolean;
+  format?: OutputFormat;
+  includeLicenseText?: boolean;
+}
 
 export interface LicenseWebpackPluginOptions {
   filename?: string;
@@ -28,6 +37,11 @@ export interface LicenseWebpackPluginOptions {
   deduplicateLicense?: boolean;
   cache?: boolean;
   workspaceRoot?: string;
+  buildName?: string;
+  outputMode?: OutputMode;
+  reportFile?: string;
+  aggregateKey?: string;
+  emitMergedAsset?: boolean;
 }
 
 const PLUGIN_NAME = 'LicenseWebpackPlugin';
@@ -55,6 +69,11 @@ export class LicenseWebpackPlugin implements WebpackPluginInstance {
       deduplicateLicense: options.deduplicateLicense !== false,
       cache: options.cache !== false,
       workspaceRoot: options.workspaceRoot || '',
+      buildName: options.buildName || '',
+      outputMode: options.outputMode || 'per-compilation',
+      reportFile: options.reportFile || 'license-report.json',
+      aggregateKey: options.aggregateKey || '',
+      emitMergedAsset: options.emitMergedAsset || false,
     };
     this.db = new LicenseDatabase();
   }
@@ -150,8 +169,34 @@ export class LicenseWebpackPlugin implements WebpackPluginInstance {
       items = items.sort((a, b) => a.package.name.localeCompare(b.package.name));
     }
 
-    const formatter = this.createFormatter();
-    compilation.emitAsset(this.options.filename, new sources.RawSource(formatter.generate(items)));
+    const { outputMode } = this.options;
+
+    if (outputMode === 'per-compilation') {
+      const formatter = this.createFormatter();
+      compilation.emitAsset(this.options.filename, new sources.RawSource(formatter.generate(items)));
+    } else if (outputMode === 'report-only' || outputMode === 'aggregate') {
+      const report = this.buildReport(compiler, items);
+      compilation.emitAsset(this.options.reportFile, new sources.RawSource(JSON.stringify(report, null, 2)));
+    }
+  }
+
+  private buildReport(compiler: Compiler, items: OutputItem[]): LicenseBuildReport {
+    const project = this.options.workspaceRoot || compiler.context;
+    const buildName = this.options.buildName || undefined;
+    const aggregateKey = this.options.aggregateKey || undefined;
+    return {
+      project,
+      buildName,
+      aggregateKey,
+      generatedAt: new Date().toISOString(),
+      packages: items.map((item) => ({
+        name: item.package.name,
+        version: item.package.version,
+        chunks: item.package.chunks,
+        buildName,
+        license: item.license,
+      })),
+    };
   }
 
   private filterLicenseFields(licenseInfo: LicenseInfo): LicenseInfo {
@@ -176,5 +221,53 @@ export class LicenseWebpackPlugin implements WebpackPluginInstance {
       default:
         return new TxtFormatter({ includeLicenseText: this.options.includeLicenseText });
     }
+  }
+
+  static mergeReports(reports: LicenseBuildReport[], options: MergeReportsOptions = {}): OutputItem[] | string {
+    const mergedItems: OutputItem[] = [];
+    const seenKeys = new Set<string>();
+
+    for (const report of reports) {
+      for (const pkg of report.packages) {
+        const key = `${pkg.name}@${pkg.version}`;
+        if (options.deduplicate && seenKeys.has(key)) {
+          continue;
+        }
+        seenKeys.add(key);
+        mergedItems.push({
+          package: {
+            name: pkg.name,
+            version: pkg.version,
+            path: '',
+            packageJsonPath: '',
+            chunks: pkg.chunks,
+            modules: [],
+          },
+          license: pkg.license,
+        });
+      }
+    }
+
+    if (options.format) {
+      let formatter: Formatter;
+      switch (options.format) {
+        case 'json':
+          formatter = new JsonFormatter();
+          break;
+        case 'markdown':
+          formatter = new MarkdownFormatter();
+          break;
+        case 'html':
+          formatter = new HtmlFormatter();
+          break;
+        case 'txt':
+        default:
+          formatter = new TxtFormatter({ includeLicenseText: options.includeLicenseText });
+          break;
+      }
+      return formatter.generate(mergedItems);
+    }
+
+    return mergedItems;
   }
 }
