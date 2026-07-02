@@ -69,14 +69,9 @@ export default defineConfig({
 | `includeRepository` | `boolean` | `true` | Include repository URLs |
 | `includeHomepage` | `boolean` | `true` | Include homepage URLs |
 | `includeAuthor` | `boolean` | `true` | Include author/publisher details |
-| `includePackages` | `string[]` | `[]` | Only include listed packages |
-| `excludePackages` | `string[]` | `[]` | Exclude listed packages |
-| `includeLicenses` | `string[]` | `[]` | Only include listed licenses |
-| `excludeLicenses` | `string[]` | `[]` | Exclude listed licenses |
+| `excludePackages` | `string[]` | `[]` | Exclude listed packages from output |
 | `onlyAllow` | `string[]` | `[]` | Fail build when a used license is not allowed |
 | `failOn` | `string[]` | `[]` | Fail build when a used license matches the list |
-| `sort` | `boolean` | `true` | Sort packages by name |
-| `deduplicateLicense` | `boolean` | `true` | Suppress repeated license text bodies |
 | `cache` | `boolean` | `true` | Reuse the in-memory license database |
 | `workspaceRoot` | `string` | Bundler's root context | Root path for license scanning |
 | `recorder` | `Recorder` | — | External recorder shared across compiler instances (webpack only) |
@@ -100,24 +95,17 @@ The plugin starts with the set of dependency entries detected from the bundler's
 
 ### Filter options
 
-- `includePackages`: keep only entries whose package name is listed.
 - `excludePackages`: remove entries whose package name is listed.
-- `includeLicenses`: keep only entries whose resolved license is listed.
-- `excludeLicenses`: remove entries whose resolved license is listed.
+- `onlyAllow`: fail the build if a package license is not in the allowed list.
+- `failOn`: fail the build if a package license matches the list.
 
 ### Evaluation order
 
-1. `includePackages`
-2. `excludePackages`
-3. `includeLicenses`
-4. `excludeLicenses`
+1. `excludePackages`
+2. `onlyAllow`
+3. `failOn`
 
-This means:
-
-- include filters narrow the current result set
-- exclude filters run afterward and have the final removal effect
-- when both `includePackages` and `includeLicenses` are set, an entry must satisfy both include filters to remain
-- matching either `excludePackages` or `excludeLicenses` removes the entry, even if it matched an include filter earlier
+All bundled packages are included by default. `excludePackages` removes unwanted entries first, then `onlyAllow` and `failOn` enforce license policies — generating build errors and stopping output when violated.
 
 ### Transitive dependency behavior
 
@@ -127,21 +115,18 @@ This means:
 
 ```js
 new LicenseWebpackPlugin({
-  includePackages: ['lodash', 'react', 'react-dom'],
-  includeLicenses: ['MIT'],
   excludePackages: ['react-dom'],
-  excludeLicenses: ['MIT-0'],
+  onlyAllow: ['MIT'],
+  failOn: ['MIT-0'],
 });
 ```
 
 With this configuration:
 
-- the plugin first keeps only `lodash`, `react`, and `react-dom`
-- it removes `react-dom` because package exclusion runs after package inclusion
-- it keeps only the remaining entries whose resolved license is `MIT`
-- it removes any remaining entry whose resolved license is `MIT-0`
-
-So the final output is the intersection of the include filters, minus anything matched by either exclude filter.
+- all bundled packages are included by default
+- `react-dom` is removed from output
+- it fails the build if any remaining package does not have an MIT license
+- it fails the build if any remaining package has an MIT-0 license
 
 ## Output formats
 

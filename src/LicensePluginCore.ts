@@ -12,25 +12,58 @@ import { Recorder } from './Recorder';
 export type OutputFormat = 'txt' | 'json' | 'markdown' | 'html';
 
 export interface LicensePluginOptions {
+  /** Output file name (e.g. `licenses.txt`, `third-party-licenses.json`). */
   filename?: string;
+  /** Output format. */
   format?: OutputFormat;
+  /** Include the full license text in the output. */
   includeLicenseText?: boolean;
+  /** Include the repository URL in each entry. */
   includeRepository?: boolean;
+  /** Include the homepage URL in each entry. */
   includeHomepage?: boolean;
+  /** Include the author/publisher in each entry. */
   includeAuthor?: boolean;
-  includePackages?: string[];
+  /** Exclude specific packages from the output by name. */
   excludePackages?: string[];
-  includeLicenses?: string[];
-  excludeLicenses?: string[];
+  /**
+   * Allow only these licenses. When set, the build fails if any bundled
+   * package has a license not in this list.
+   */
   onlyAllow?: string[];
+  /**
+   * Fail the build when a bundled package license matches this list.
+   * Evaluated after `onlyAllow`.
+   */
   failOn?: string[];
-  sort?: boolean;
-  deduplicateLicense?: boolean;
+  /**
+   * Reuse the in-memory license database across multiple plugin instances
+   * (e.g. in multi-compiler setups). Set to `false` to force a fresh scan
+   * each time.
+   */
   cache?: boolean;
+  /**
+   * Root path for scanning `node_modules`. Defaults to the bundler's root
+   * context (project root).
+   */
   workspaceRoot?: string;
-  dangerouslyAllowFailingBuild?: boolean;
+  /**
+   * External recorder for sharing findings across compiler instances
+   * (webpack multi-compiler only).
+   * @see DefaultRecorder
+   */
   recorder?: Recorder;
+  /**
+   * When `true`, only record findings via `recorder` without emitting a
+   * license asset. Use together with `recorder` and `waitForRecorderCount`
+   * (webpack multi-compiler only).
+   */
   recordOnly?: boolean;
+  /**
+   * Wait for this many reports from the shared recorder before emitting
+   * the combined, deduplicated license asset.
+   * Requires `recorder` to be set (webpack multi-compiler only).
+   */
   waitForRecorderCount?: number;
 }
 
@@ -41,11 +74,10 @@ export interface LicensePluginContext {
 
 export class LicensePluginCore {
   readonly options: Required<
-    Omit<LicensePluginOptions, 'recorder' | 'waitForRecorderCount' | 'dangerouslyAllowFailingBuild'>
+    Omit<LicensePluginOptions, 'recorder' | 'waitForRecorderCount'>
   > & {
     recorder: Recorder | undefined;
     waitForRecorderCount: number | undefined;
-    dangerouslyAllowFailingBuild: boolean;
   };
   private db: LicenseDatabase;
 
@@ -57,17 +89,11 @@ export class LicensePluginCore {
       includeRepository: options.includeRepository !== false,
       includeHomepage: options.includeHomepage !== false,
       includeAuthor: options.includeAuthor !== false,
-      includePackages: options.includePackages || [],
       excludePackages: options.excludePackages || [],
-      includeLicenses: options.includeLicenses || [],
-      excludeLicenses: options.excludeLicenses || [],
       onlyAllow: options.onlyAllow || [],
       failOn: options.failOn || [],
-      sort: options.sort !== false,
-      deduplicateLicense: options.deduplicateLicense !== false,
       cache: options.cache !== false,
       workspaceRoot: options.workspaceRoot || '',
-      dangerouslyAllowFailingBuild: options.dangerouslyAllowFailingBuild === true,
       recorder: options.recorder,
       recordOnly: options.recordOnly === true,
       waitForRecorderCount: options.waitForRecorderCount,
@@ -84,12 +110,7 @@ export class LicensePluginCore {
       await this.db.initialize(startPath);
       return true;
     } catch (error) {
-      const message = `LicensePlugin: Failed to initialize license database: ${String(error)}`;
-      if (this.options.dangerouslyAllowFailingBuild) {
-        context.reportWarning(message);
-      } else {
-        context.reportError(message);
-      }
+      context.reportError(`LicensePlugin: Failed to initialize license database: ${String(error)}`);
       return false;
     }
   }
@@ -99,25 +120,14 @@ export class LicensePluginCore {
     context: LicensePluginContext
   ): Promise<{ items: OutputItem[]; errors: string[] }> {
     let items: OutputItem[] = [];
-    const seenLicenseTexts = new Set<string>();
     const licenseErrors: string[] = [];
 
     for (const pkgInfo of packages.values()) {
-      if (this.options.includePackages.length > 0 && !this.options.includePackages.includes(pkgInfo.name)) {
-        continue;
-      }
       if (this.options.excludePackages.includes(pkgInfo.name)) {
         continue;
       }
 
       const licenseInfo = this.filterLicenseFields(this.db.getLicense(pkgInfo.name, pkgInfo.version));
-
-      if (this.options.includeLicenses.length > 0 && !this.options.includeLicenses.includes(licenseInfo.license)) {
-        continue;
-      }
-      if (this.options.excludeLicenses.includes(licenseInfo.license)) {
-        continue;
-      }
 
       if (this.options.onlyAllow.length > 0 && !this.options.onlyAllow.includes(licenseInfo.license)) {
         licenseErrors.push(
@@ -133,17 +143,7 @@ export class LicensePluginCore {
         continue;
       }
 
-      const normalizedLicense = { ...licenseInfo };
-      if (this.options.deduplicateLicense && normalizedLicense.licenseText) {
-        const text = normalizedLicense.licenseText;
-        if (seenLicenseTexts.has(text)) {
-          normalizedLicense.licenseText = undefined;
-        } else {
-          seenLicenseTexts.add(text);
-        }
-      }
-
-      items.push({ package: pkgInfo, license: normalizedLicense });
+      items.push({ package: pkgInfo, license: { ...licenseInfo } });
     }
 
     if (this.options.recorder) {
@@ -185,9 +185,7 @@ export class LicensePluginCore {
       items = mergedItems;
     }
 
-    if (this.options.sort) {
-      items = items.sort((a, b) => a.package.name.localeCompare(b.package.name));
-    }
+    items.sort((a, b) => a.package.name.localeCompare(b.package.name));
 
     return { items, errors: [] };
   }

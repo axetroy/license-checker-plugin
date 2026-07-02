@@ -37,6 +37,10 @@ describe('LicenseWebpackPlugin integration', () => {
     fs.rmSync(path.resolve(__dirname, 'output', 'include-license-text-true'), { recursive: true, force: true });
     fs.rmSync(path.resolve(__dirname, 'output', 'include-license-text-false'), { recursive: true, force: true });
     fs.rmSync(path.resolve(__dirname, 'output', 'production-only'), { recursive: true, force: true });
+    fs.rmSync(path.resolve(__dirname, 'output', 'only-allow-pass'), { recursive: true, force: true });
+    fs.rmSync(path.resolve(__dirname, 'output', 'only-allow-fail'), { recursive: true, force: true });
+    fs.rmSync(path.resolve(__dirname, 'output', 'fail-on-fail'), { recursive: true, force: true });
+    fs.rmSync(path.resolve(__dirname, 'output', 'fail-on-pass'), { recursive: true, force: true });
   });
 
   it('generates a licenses.txt file with txt format', async () => {
@@ -196,5 +200,99 @@ describe('LicenseWebpackPlugin integration', () => {
     expect(content).toContain('lodash');
     expect(content).not.toContain('License Text:');
     expect(content).not.toContain('Copyright OpenJS Foundation');
+  });
+
+  describe('onlyAllow', () => {
+    it('passes when all bundled packages have an allowed license', async () => {
+      const outputPath = prepareOutputDir('only-allow-pass');
+
+      const stats = await runWebpack({
+        mode: 'development',
+        entry: path.resolve(__dirname, '../fixtures/entry.js'),
+        output: { path: outputPath, filename: 'bundle.js' },
+        plugins: [
+          new LicenseWebpackPlugin({
+            filename: 'licenses.json',
+            format: 'json',
+            onlyAllow: ['MIT'],
+            workspaceRoot: path.resolve(__dirname, '../../..'),
+          }),
+        ],
+      });
+
+      expect(stats.hasErrors()).toBe(false);
+      const licenseFile = path.join(outputPath, 'licenses.json');
+      expect(fs.existsSync(licenseFile)).toBe(true);
+      const parsed = JSON.parse(fs.readFileSync(licenseFile, 'utf-8')) as Array<{ name: string }>;
+      expect(parsed.some((item) => item.name === 'lodash')).toBe(true);
+    });
+
+    it('fails when a bundled package license is not in the allow list', async () => {
+      const outputPath = prepareOutputDir('only-allow-fail');
+
+      const stats = await runWebpack({
+        mode: 'development',
+        entry: path.resolve(__dirname, '../fixtures/entry.js'),
+        output: { path: outputPath, filename: 'bundle.js' },
+        plugins: [
+          new LicenseWebpackPlugin({
+            filename: 'licenses.json',
+            format: 'json',
+            onlyAllow: ['Apache-2.0'],
+            workspaceRoot: path.resolve(__dirname, '../../..'),
+          }),
+        ],
+      });
+
+      expect(stats.hasErrors()).toBe(true);
+      expect(fs.existsSync(path.join(outputPath, 'licenses.json'))).toBe(false);
+    });
+  });
+
+  describe('failOn', () => {
+    it('fails when a bundled package license matches the fail list', async () => {
+      const outputPath = prepareOutputDir('fail-on-fail');
+
+      const stats = await runWebpack({
+        mode: 'development',
+        entry: path.resolve(__dirname, '../fixtures/entry.js'),
+        output: { path: outputPath, filename: 'bundle.js' },
+        plugins: [
+          new LicenseWebpackPlugin({
+            filename: 'licenses.json',
+            format: 'json',
+            failOn: ['MIT'],
+            workspaceRoot: path.resolve(__dirname, '../../..'),
+          }),
+        ],
+      });
+
+      expect(stats.hasErrors()).toBe(true);
+      expect(fs.existsSync(path.join(outputPath, 'licenses.json'))).toBe(false);
+    });
+
+    it('passes when no bundled package license matches the fail list', async () => {
+      const outputPath = prepareOutputDir('fail-on-pass');
+
+      const stats = await runWebpack({
+        mode: 'development',
+        entry: path.resolve(__dirname, '../fixtures/entry.js'),
+        output: { path: outputPath, filename: 'bundle.js' },
+        plugins: [
+          new LicenseWebpackPlugin({
+            filename: 'licenses.json',
+            format: 'json',
+            failOn: ['Apache-2.0'],
+            workspaceRoot: path.resolve(__dirname, '../../..'),
+          }),
+        ],
+      });
+
+      expect(stats.hasErrors()).toBe(false);
+      const licenseFile = path.join(outputPath, 'licenses.json');
+      expect(fs.existsSync(licenseFile)).toBe(true);
+      const parsed = JSON.parse(fs.readFileSync(licenseFile, 'utf-8')) as Array<{ name: string }>;
+      expect(parsed.some((item) => item.name === 'lodash')).toBe(true);
+    });
   });
 });

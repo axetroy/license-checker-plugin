@@ -175,9 +175,9 @@ async function run() {
     assert(!packageNames.includes('typescript'), 'production-only: does not contain typescript');
   }
 
-  // 5) includePackages filter
+  // 5) excludePackages filter
   {
-    const outDir = prepareOutputDir('include-filter');
+    const outDir = prepareOutputDir('exclude-pkg');
     await build({
       root: FIXTURES,
       logLevel: 'silent',
@@ -193,7 +193,7 @@ async function run() {
             viteLicensePlugin({
               filename: 'licenses.json',
               format: 'json',
-              includePackages: ['lodash'],
+              excludePackages: ['lodash'],
               workspaceRoot: path.resolve(__dirname, '../../..'),
             }),
           ],
@@ -202,11 +202,10 @@ async function run() {
     });
 
     const licenseFile = path.join(outDir, 'licenses.json');
-    assert(fs.existsSync(licenseFile), 'licenses.json (include) exists');
+    assert(fs.existsSync(licenseFile), 'licenses.json (exclude-pkg) exists');
     const parsed = JSON.parse(fs.readFileSync(licenseFile, 'utf-8'));
     const packageNames = parsed.map(item => item.name);
-    assert(packageNames.includes('lodash'), 'include-filter: contains lodash');
-    assert(packageNames.length === 1, 'include-filter: only one package');
+    assert(!packageNames.includes('lodash'), 'exclude-pkg: lodash excluded');
   }
 
   // 6) excludePackages filter
