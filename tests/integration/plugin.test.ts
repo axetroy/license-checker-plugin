@@ -32,7 +32,10 @@ function prepareOutputDir(name: string): string {
 
 describe('LicenseWebpackPlugin integration', () => {
   afterAll(() => {
-    fs.rmSync(path.resolve(__dirname, 'output'), { recursive: true, force: true });
+    fs.rmSync(path.resolve(__dirname, 'output', 'txt'), { recursive: true, force: true });
+    fs.rmSync(path.resolve(__dirname, 'output', 'json'), { recursive: true, force: true });
+    fs.rmSync(path.resolve(__dirname, 'output', 'include-license-text-true'), { recursive: true, force: true });
+    fs.rmSync(path.resolve(__dirname, 'output', 'include-license-text-false'), { recursive: true, force: true });
   });
 
   it('generates a licenses.txt file with txt format', async () => {

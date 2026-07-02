@@ -31,7 +31,10 @@ function prepareOutputDir(name: string): string {
 
 describe('Non-JS assets - CSS, HTML, TXT support', () => {
   afterAll(() => {
-    fs.rmSync(path.resolve(__dirname, 'output'), { recursive: true, force: true });
+    fs.rmSync(path.resolve(__dirname, 'output', 'css-assets'), { recursive: true, force: true });
+    fs.rmSync(path.resolve(__dirname, 'output', 'html-assets'), { recursive: true, force: true });
+    fs.rmSync(path.resolve(__dirname, 'output', 'mixed-assets'), { recursive: true, force: true });
+    fs.rmSync(path.resolve(__dirname, 'output', 'json-assets'), { recursive: true, force: true });
   });
 
   it('detects packages from CSS imports', async () => {
