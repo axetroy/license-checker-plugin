@@ -24,7 +24,7 @@ function makePackage(name: string, version: string): PackageInfo {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  MockLicenseDatabase.prototype.initialize.mockResolvedValue(undefined);
+  MockLicenseDatabase.prototype.initialize.mockReturnValue(undefined);
 });
 
 describe('LicensePluginCore — compound license strings', () => {
@@ -33,7 +33,7 @@ describe('LicensePluginCore — compound license strings', () => {
       license: '(MIT OR CC0-1.0)',
     });
     const core = new LicensePluginCore({ workspaceRoot: '/test' });
-    await core.initialize('/test', mockContext);
+    core.initialize('/test', mockContext);
 
     const packages = new Map<string, PackageInfo>();
     packages.set('type-fest@0.21.3', makePackage('type-fest', '0.21.3'));
@@ -50,7 +50,7 @@ describe('LicensePluginCore — compound license strings', () => {
       license: 'MIT AND Apache-2.0',
     });
     const core = new LicensePluginCore({ workspaceRoot: '/test' });
-    await core.initialize('/test', mockContext);
+    core.initialize('/test', mockContext);
 
     const packages = new Map<string, PackageInfo>();
     packages.set('dual@1.0.0', makePackage('dual', '1.0.0'));
@@ -71,7 +71,7 @@ describe('LicensePluginCore — compound license strings', () => {
         onlyAllow: ['MIT', 'Apache-2.0'],
         workspaceRoot: '/test',
       });
-      await core.initialize('/test', mockContext);
+      core.initialize('/test', mockContext);
 
       const packages = new Map<string, PackageInfo>();
       packages.set('pkg@1.0.0', makePackage('pkg', '1.0.0'));
@@ -91,7 +91,7 @@ describe('LicensePluginCore — compound license strings', () => {
         onlyAllow: ['MIT'],
         workspaceRoot: '/test',
       });
-      await core.initialize('/test', mockContext);
+      core.initialize('/test', mockContext);
 
       const packages = new Map<string, PackageInfo>();
       packages.set('pkg@1.0.0', makePackage('pkg', '1.0.0'));
@@ -111,7 +111,7 @@ describe('LicensePluginCore — compound license strings', () => {
         onlyAllow: ['MIT AND Apache-2.0'],
         workspaceRoot: '/test',
       });
-      await core.initialize('/test', mockContext);
+      core.initialize('/test', mockContext);
 
       const packages = new Map<string, PackageInfo>();
       packages.set('pkg@1.0.0', makePackage('pkg', '1.0.0'));
@@ -130,7 +130,7 @@ describe('LicensePluginCore — compound license strings', () => {
         onlyAllow: ['MIT'],
         workspaceRoot: '/test',
       });
-      await core.initialize('/test', mockContext);
+      core.initialize('/test', mockContext);
 
       const packages = new Map<string, PackageInfo>();
       packages.set('pkg@1.0.0', makePackage('pkg', '1.0.0'));
@@ -153,7 +153,7 @@ describe('LicensePluginCore — compound license strings', () => {
         }
       );
       const core = new LicensePluginCore({ workspaceRoot: '/test' });
-      await core.initialize('/test', mockContext);
+      core.initialize('/test', mockContext);
 
       const packages = new Map<string, PackageInfo>();
       packages.set('packageA@1.0.0', makePackage('packageA', '1.0.0'));
@@ -178,7 +178,7 @@ describe('LicensePluginCore — compound license strings', () => {
         }
       );
       const core = new LicensePluginCore({ workspaceRoot: '/test' });
-      await core.initialize('/test', mockContext);
+      core.initialize('/test', mockContext);
 
       const packages = new Map<string, PackageInfo>();
       packages.set('packageA@1.0.0', makePackage('packageA', '1.0.0'));
@@ -207,7 +207,7 @@ describe('LicensePluginCore — compound license strings', () => {
         onlyAllow: ['MIT'],
         workspaceRoot: '/test',
       });
-      await core.initialize('/test', mockContext);
+      core.initialize('/test', mockContext);
 
       const packages = new Map<string, PackageInfo>();
       packages.set('packageA@1.0.0', makePackage('packageA', '1.0.0'));
@@ -233,7 +233,7 @@ describe('LicensePluginCore — compound license strings', () => {
         failOn: ['GPL-3.0'],
         workspaceRoot: '/test',
       });
-      await core.initialize('/test', mockContext);
+      core.initialize('/test', mockContext);
 
       const packages = new Map<string, PackageInfo>();
       packages.set('packageA@1.0.0', makePackage('packageA', '1.0.0'));
@@ -257,7 +257,7 @@ describe('LicensePluginCore — compound license strings', () => {
         failOn: ['(MIT OR Apache-2.0)'],
         workspaceRoot: '/test',
       });
-      await core.initialize('/test', mockContext);
+      core.initialize('/test', mockContext);
 
       const packages = new Map<string, PackageInfo>();
       packages.set('pkg@1.0.0', makePackage('pkg', '1.0.0'));
@@ -277,7 +277,7 @@ describe('LicensePluginCore — compound license strings', () => {
         failOn: ['Apache-2.0'],
         workspaceRoot: '/test',
       });
-      await core.initialize('/test', mockContext);
+      core.initialize('/test', mockContext);
 
       const packages = new Map<string, PackageInfo>();
       packages.set('pkg@1.0.0', makePackage('pkg', '1.0.0'));
@@ -296,7 +296,7 @@ describe('LicensePluginCore — compound license strings', () => {
         failOn: ['MIT AND Apache-2.0'],
         workspaceRoot: '/test',
       });
-      await core.initialize('/test', mockContext);
+      core.initialize('/test', mockContext);
 
       const packages = new Map<string, PackageInfo>();
       packages.set('pkg@1.0.0', makePackage('pkg', '1.0.0'));
@@ -316,7 +316,7 @@ describe('LicensePluginCore — compound license strings', () => {
         failOn: ['GPL-3.0'],
         workspaceRoot: '/test',
       });
-      await core.initialize('/test', mockContext);
+      core.initialize('/test', mockContext);
 
       const packages = new Map<string, PackageInfo>();
       packages.set('pkg@1.0.0', makePackage('pkg', '1.0.0'));
@@ -334,7 +334,7 @@ describe('LicensePluginCore — compound license strings', () => {
         license: 'Custom',
       });
       const core = new LicensePluginCore({ workspaceRoot: '/test' });
-      await core.initialize('/test', mockContext);
+      core.initialize('/test', mockContext);
 
       const packages = new Map<string, PackageInfo>();
       packages.set('pkg@1.0.0', makePackage('pkg', '1.0.0'));
@@ -351,7 +351,7 @@ describe('LicensePluginCore — compound license strings', () => {
         license: 'Custom',
       });
       const core = new LicensePluginCore({ workspaceRoot: '/test' });
-      await core.initialize('/test', mockContext);
+      core.initialize('/test', mockContext);
 
       const packages = new Map<string, PackageInfo>();
       packages.set('pkg@1.0.0', makePackage('pkg', '1.0.0'));
@@ -368,7 +368,7 @@ describe('LicensePluginCore — compound license strings', () => {
         license: 'Custom',
       });
       const core = new LicensePluginCore({ workspaceRoot: '/test' });
-      await core.initialize('/test', mockContext);
+      core.initialize('/test', mockContext);
 
       const packages = new Map<string, PackageInfo>();
       packages.set('pkg@1.0.0', makePackage('pkg', '1.0.0'));
@@ -385,7 +385,7 @@ describe('LicensePluginCore — compound license strings', () => {
         license: '',
       });
       const core = new LicensePluginCore({ workspaceRoot: '/test' });
-      await core.initialize('/test', mockContext);
+      core.initialize('/test', mockContext);
 
       const packages = new Map<string, PackageInfo>();
       packages.set('pkg@1.0.0', makePackage('pkg', '1.0.0'));
@@ -405,7 +405,7 @@ describe('LicensePluginCore — compound license strings', () => {
         onlyAllow: ['MIT', 'Apache-2.0'],
         workspaceRoot: '/test',
       });
-      await core.initialize('/test', mockContext);
+      core.initialize('/test', mockContext);
 
       const packages = new Map<string, PackageInfo>();
       packages.set('pkg@1.0.0', makePackage('pkg', '1.0.0'));
@@ -425,7 +425,7 @@ describe('LicensePluginCore — compound license strings', () => {
         failOn: ['Custom'],
         workspaceRoot: '/test',
       });
-      await core.initialize('/test', mockContext);
+      core.initialize('/test', mockContext);
 
       const packages = new Map<string, PackageInfo>();
       packages.set('pkg@1.0.0', makePackage('pkg', '1.0.0'));
@@ -445,7 +445,7 @@ describe('LicensePluginCore — compound license strings', () => {
         onlyAllow: ['Custom'],
         workspaceRoot: '/test',
       });
-      await core.initialize('/test', mockContext);
+      core.initialize('/test', mockContext);
 
       const packages = new Map<string, PackageInfo>();
       packages.set('pkg@1.0.0', makePackage('pkg', '1.0.0'));

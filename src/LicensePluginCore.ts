@@ -101,13 +101,13 @@ export class LicensePluginCore {
     this.db = new LicenseDatabase();
   }
 
-  async initialize(startPath: string, context: LicensePluginContext): Promise<boolean> {
+  initialize(startPath: string, context: LicensePluginContext): boolean {
     if (!this.options.cache) {
       this.db = new LicenseDatabase();
     }
 
     try {
-      await this.db.initialize(startPath);
+      this.db.initialize(startPath);
       return true;
     } catch (error) {
       context.reportError(`LicensePlugin: Failed to initialize license database: ${String(error)}`);
@@ -119,83 +119,95 @@ export class LicensePluginCore {
     packages: Map<string, PackageInfo>,
     context: LicensePluginContext
   ): Promise<{ items: OutputItem[]; errors: string[] }> {
-    let items: OutputItem[] = [];
-    const licenseErrors: string[] = [];
-
-    for (const pkgInfo of packages.values()) {
-      if (this.options.excludePackages.includes(pkgInfo.name)) {
-        continue;
-      }
-
-      const licenseInfo = this.filterLicenseFields(this.db.getLicense(pkgInfo.name, pkgInfo.version));
-
-      if (this.options.onlyAllow.length > 0 && !this.options.onlyAllow.includes(licenseInfo.license)) {
-        licenseErrors.push(
-          `LicensePlugin: License "${licenseInfo.license}" for package "${pkgInfo.name}@${pkgInfo.version}" is not in the allowed list: ${this.options.onlyAllow.join(', ')}`
-        );
-        continue;
-      }
-
-      if (this.options.failOn.length > 0 && this.options.failOn.includes(licenseInfo.license)) {
-        licenseErrors.push(
-          `LicensePlugin: License "${licenseInfo.license}" for package "${pkgInfo.name}@${pkgInfo.version}" is in the fail list`
-        );
-        continue;
-      }
-
-      items.push({
-        package: {
-          ...pkgInfo,
-          repository: this.options.includeRepository ? pkgInfo.repository : undefined,
-          homepage: this.options.includeHomepage ? pkgInfo.homepage : undefined,
-          author: this.options.includeAuthor ? pkgInfo.author : undefined,
-        },
-        license: { ...licenseInfo },
-      });
+    const entries = this.resolveLicenseEntries(packages);
+    const errors = this.checkCompliance(entries);
+    if (errors.length > 0) {
+      for (const err of errors) context.reportError(err);
+      return { items: [], errors };
     }
 
-    if (this.options.recorder) {
-      const report: LicenseBuildReport = { items };
-      this.options.recorder.record(report);
-    }
-
-    if (licenseErrors.length > 0) {
-      for (const errMsg of licenseErrors) {
-        context.reportError(errMsg);
-      }
-      return { items: [], errors: licenseErrors };
-    }
-
-    if (this.options.recordOnly) {
-      return { items: [], errors: [] };
-    }
+    let items = this.buildOutputItems(entries);
+    this.recordReport(items);
+    if (this.options.recordOnly) return { items: [], errors: [] };
 
     if (this.options.recorder && this.options.waitForRecorderCount !== undefined) {
-      let allReports: LicenseBuildReport[];
       try {
-        allReports = await this.options.recorder.waitForReports(this.options.waitForRecorderCount);
+        items = this.mergeReports(items, await this.options.recorder.waitForReports(this.options.waitForRecorderCount));
       } catch (error) {
         context.reportError(String(error));
         return { items: [], errors: [String(error)] };
       }
-
-      const seen = new Set<string>();
-      const mergedItems: OutputItem[] = [];
-      for (const report of allReports) {
-        for (const item of report.items) {
-          const key = `${item.package.name}@${item.package.version}`;
-          if (!seen.has(key)) {
-            seen.add(key);
-            mergedItems.push(item);
-          }
-        }
-      }
-      items = mergedItems;
     }
 
     items.sort((a, b) => a.package.name.localeCompare(b.package.name));
-
     return { items, errors: [] };
+  }
+
+  private resolveLicenseEntries(
+    packages: Map<string, PackageInfo>
+  ): Array<{ info: PackageInfo; licenseInfo: LicenseInfo }> {
+    const entries: Array<{ info: PackageInfo; licenseInfo: LicenseInfo }> = [];
+    for (const pkgInfo of packages.values()) {
+      if (this.options.excludePackages.includes(pkgInfo.name)) continue;
+      entries.push({
+        info: pkgInfo,
+        licenseInfo: this.filterLicenseFields(this.db.getLicense(pkgInfo.name, pkgInfo.version)),
+      });
+    }
+    return entries;
+  }
+
+  private checkCompliance(
+    entries: Array<{ info: PackageInfo; licenseInfo: LicenseInfo }>
+  ): string[] {
+    const errors: string[] = [];
+    for (const { info, licenseInfo } of entries) {
+      if (this.options.onlyAllow.length > 0 && !this.options.onlyAllow.includes(licenseInfo.license)) {
+        errors.push(
+          `LicensePlugin: License "${licenseInfo.license}" for package "${info.name}@${info.version}" is not in the allowed list: ${this.options.onlyAllow.join(', ')}`
+        );
+      } else if (this.options.failOn.length > 0 && this.options.failOn.includes(licenseInfo.license)) {
+        errors.push(
+          `LicensePlugin: License "${licenseInfo.license}" for package "${info.name}@${info.version}" is in the fail list`
+        );
+      }
+    }
+    return errors;
+  }
+
+  private buildOutputItems(
+    entries: Array<{ info: PackageInfo; licenseInfo: LicenseInfo }>
+  ): OutputItem[] {
+    return entries.map(({ info, licenseInfo }) => ({
+      package: {
+        ...info,
+        repository: this.options.includeRepository ? info.repository : undefined,
+        homepage: this.options.includeHomepage ? info.homepage : undefined,
+        author: this.options.includeAuthor ? info.author : undefined,
+      },
+      license: { ...licenseInfo },
+    }));
+  }
+
+  private recordReport(items: OutputItem[]): void {
+    if (this.options.recorder) {
+      this.options.recorder.record({ items });
+    }
+  }
+
+  private mergeReports(items: OutputItem[], allReports: LicenseBuildReport[]): OutputItem[] {
+    const seen = new Set<string>();
+    const merged: OutputItem[] = [];
+    for (const report of allReports) {
+      for (const item of report.items) {
+        const key = `${item.package.name}@${item.package.version}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          merged.push(item);
+        }
+      }
+    }
+    return merged;
   }
 
   format(items: OutputItem[]): string {

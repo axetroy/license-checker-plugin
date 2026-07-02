@@ -2,11 +2,15 @@ import type { Chunk, Compilation, Module } from 'webpack';
 import { PackageInfo } from '../model/PackageInfo';
 import { PackageResolver } from './PackageResolver';
 
-type ResourceModule = Module & {
+interface NormalModuleShape {
   resource?: string;
   userRequest?: string;
   rootModule?: { resource?: string; userRequest?: string };
-};
+}
+
+function isNormalModuleShape(module: Module): module is Module & NormalModuleShape {
+  return 'resource' in module || 'userRequest' in module;
+}
 
 export class PackageScanner {
   private readonly resolver: PackageResolver;
@@ -56,12 +60,12 @@ export class PackageScanner {
   }
 
   private getModuleResource(module: Module): string | null {
-    const resourceModule = module as ResourceModule;
+    if (!isNormalModuleShape(module)) return null;
     return (
-      resourceModule.resource ||
-      resourceModule.userRequest ||
-      resourceModule.rootModule?.resource ||
-      resourceModule.rootModule?.userRequest ||
+      module.resource ||
+      module.userRequest ||
+      module.rootModule?.resource ||
+      module.rootModule?.userRequest ||
       null
     );
   }

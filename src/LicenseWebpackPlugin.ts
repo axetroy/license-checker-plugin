@@ -10,6 +10,13 @@ export type LicenseWebpackPluginOptions = LicensePluginOptions;
 const PLUGIN_NAME = 'LicenseWebpackPlugin';
 const DEFAULT_PROCESS_ASSETS_STAGE_REPORT = 5000;
 
+interface CompilerWithWebpack {
+  webpack?: {
+    Compilation: { PROCESS_ASSETS_STAGE_REPORT: number };
+    sources: { RawSource: new (source: string | Buffer) => import('webpack').sources.Source };
+  };
+}
+
 export class LicenseWebpackPlugin implements WebpackPluginInstance {
   private readonly core: LicensePluginCore;
 
@@ -18,7 +25,7 @@ export class LicenseWebpackPlugin implements WebpackPluginInstance {
   }
 
   apply(compiler: Compiler): void {
-    const wp = (compiler as { webpack?: typeof import('webpack') }).webpack;
+    const wp = (compiler as CompilerWithWebpack).webpack;
     const processAssetsStageReport =
       wp?.Compilation?.PROCESS_ASSETS_STAGE_REPORT ?? DEFAULT_PROCESS_ASSETS_STAGE_REPORT;
 
@@ -42,7 +49,7 @@ export class LicenseWebpackPlugin implements WebpackPluginInstance {
   private async generateLicenses(
     compiler: Compiler,
     compilation: Compilation,
-    wp: typeof import('webpack') | undefined
+    wp: CompilerWithWebpack['webpack']
   ): Promise<void> {
     const startPath = this.core.options.workspaceRoot || compiler.context;
 
@@ -51,7 +58,7 @@ export class LicenseWebpackPlugin implements WebpackPluginInstance {
       reportWarning: (msg: string) => compilation.warnings.push(new Error(msg)),
     };
 
-    const initialized = await this.core.initialize(startPath, context);
+    const initialized = this.core.initialize(startPath, context);
     if (!initialized) return;
 
     const scanner = new PackageScanner();

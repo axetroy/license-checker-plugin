@@ -260,78 +260,72 @@ function findPackages(startPath: string): string[] {
  * Built-in license checker implementation
  */
 export function builtInLicenseChecker(
-  options: LicenseCheckerOptions,
-  callback: (err: Error | null, packages: Record<string, PackageLicenseInfo>) => void
-): void {
-  try {
-    const packages: Record<string, PackageLicenseInfo> = {};
-    const startPath = path.resolve(options.start);
+  options: LicenseCheckerOptions
+): Record<string, PackageLicenseInfo> {
+  const packages: Record<string, PackageLicenseInfo> = {};
+  const startPath = path.resolve(options.start);
 
-    if (!fs.existsSync(startPath)) {
-      callback(new Error(`Path does not exist: ${startPath}`), {});
-      return;
-    }
-
-    const packagePaths = findPackages(startPath);
-
-    for (const packagePath of packagePaths) {
-      const packageJsonPath = path.join(packagePath, 'package.json');
-      const packageJson = readPackageJson(packageJsonPath);
-
-      if (!packageJson) continue;
-
-      if (options.excludePrivatePackages && packageJson.private === true) {
-        continue;
-      }
-
-      let licenses: string | string[] | undefined;
-      if (packageJson.license) {
-        licenses = getLicenseString(packageJson.license);
-      } else if (packageJson.licenses) {
-        if (Array.isArray(packageJson.licenses)) {
-          licenses = packageJson.licenses.map((l) => getLicenseString(l) || 'UNKNOWN').filter(Boolean) as string[];
-        } else {
-          licenses = getLicenseString(packageJson.licenses);
-        }
-      }
-
-      const licenseFile = findLicenseFile(packagePath);
-      let licenseText: string | undefined;
-      let copyright: string | undefined;
-
-      if (licenseFile && options.customFormat?.licenseText) {
-        try {
-          licenseText = fs.readFileSync(licenseFile, 'utf-8');
-          copyright = extractCopyright(licenseText);
-        } catch {
-          // Ignore errors
-        }
-      }
-
-      const authorInfo = parseAuthor(packageJson.author);
-
-      const name = packageJson.name || path.basename(packagePath);
-      const version = packageJson.version || '0.0.0';
-      const key = `${name}@${version}`;
-
-      packages[key] = {
-        name,
-        version,
-        licenses,
-        licenseFile: licenseFile || undefined,
-        licenseText,
-        copyright,
-        repository: getRepositoryUrl(packageJson.repository),
-        publisher: authorInfo.name,
-        email: authorInfo.email,
-        url: packageJson.homepage,
-        private: packageJson.private === true,
-        path: packagePath,
-      };
-    }
-
-    callback(null, packages);
-  } catch (err) {
-    callback(err instanceof Error ? err : new Error(String(err)), {});
+  if (!fs.existsSync(startPath)) {
+    throw new Error(`Path does not exist: ${startPath}`);
   }
+
+  const packagePaths = findPackages(startPath);
+
+  for (const packagePath of packagePaths) {
+    const packageJsonPath = path.join(packagePath, 'package.json');
+    const packageJson = readPackageJson(packageJsonPath);
+
+    if (!packageJson) continue;
+
+    if (options.excludePrivatePackages && packageJson.private === true) {
+      continue;
+    }
+
+    let licenses: string | string[] | undefined;
+    if (packageJson.license) {
+      licenses = getLicenseString(packageJson.license);
+    } else if (packageJson.licenses) {
+      if (Array.isArray(packageJson.licenses)) {
+        licenses = packageJson.licenses.map((l) => getLicenseString(l) || 'UNKNOWN').filter(Boolean) as string[];
+      } else {
+        licenses = getLicenseString(packageJson.licenses);
+      }
+    }
+
+    const licenseFile = findLicenseFile(packagePath);
+    let licenseText: string | undefined;
+    let copyright: string | undefined;
+
+    if (licenseFile && options.customFormat?.licenseText) {
+      try {
+        licenseText = fs.readFileSync(licenseFile, 'utf-8');
+        copyright = extractCopyright(licenseText);
+      } catch {
+        // Ignore errors
+      }
+    }
+
+    const authorInfo = parseAuthor(packageJson.author);
+
+    const name = packageJson.name || path.basename(packagePath);
+    const version = packageJson.version || '0.0.0';
+    const key = `${name}@${version}`;
+
+    packages[key] = {
+      name,
+      version,
+      licenses,
+      licenseFile: licenseFile || undefined,
+      licenseText,
+      copyright,
+      repository: getRepositoryUrl(packageJson.repository),
+      publisher: authorInfo.name,
+      email: authorInfo.email,
+      url: packageJson.homepage,
+      private: packageJson.private === true,
+      path: packagePath,
+    };
+  }
+
+  return packages;
 }

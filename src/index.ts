@@ -1,6 +1,7 @@
 export { LicenseWebpackPlugin } from './LicenseWebpackPlugin';
 export { LicensePluginCore } from './LicensePluginCore';
 export { viteLicensePlugin } from './ViteLicensePlugin';
+export { normalizeLicense } from './checker/BuiltInLicenseChecker';
 export type { LicensePluginOptions, OutputFormat, LicensePluginContext } from './LicensePluginCore';
 export type { LicenseWebpackPluginOptions, OutputFormat as WebpackOutputFormat } from './LicenseWebpackPlugin';
 export type { PackageInfo } from './model/PackageInfo';
