@@ -218,11 +218,21 @@ function getLicenseString(license: string | object | undefined): string | undefi
 function getRepositoryUrl(repository: string | object | undefined): string | undefined {
   if (!repository) return undefined;
   if (typeof repository === 'string') {
-    return repository
+    let url = repository
       .replace(/^git\+https:\/\//, 'https://')
       .replace(/^git:\/\//, 'https://')
       .replace(/^git\+ssh:\/\/git@/, 'https://')
+      .replace(/^git\+ssh:\/\//, 'https://')
       .replace(/\.git$/, '');
+    // Handle git+ssh://git@hostname:path format (SCP-like syntax)
+    // e.g., git+ssh://git@github.com:user/repo -> https://github.com/user/repo
+    // After previous replacements, URL looks like: https://github.com:user/repo
+    // We need to convert the colon to a slash
+    const scpMatch = url.match(/^https:\/\/([^:/]+):(.+)$/);
+    if (scpMatch) {
+      url = `https://${scpMatch[1]}/${scpMatch[2]}`;
+    }
+    return url;
   }
   if (typeof repository === 'object' && 'url' in repository) {
     return getRepositoryUrl((repository as { url: string }).url);
