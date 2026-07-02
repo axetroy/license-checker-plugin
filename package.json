@@ -1,7 +1,7 @@
 {
   "name": "license-checker-plugin",
   "version": "1.0.0",
-  "description": "A webpack 5 plugin to generate third-party license notices for bundled packages",
+  "description": "A bundler-agnostic plugin to generate third-party license notices for bundled packages. Supports webpack 5, Rspack, and Vite.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
