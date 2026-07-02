@@ -69,7 +69,6 @@ export class LicenseDatabase {
         {
           start: startPath,
           excludePrivatePackages: false,
-          production: false,
           customFormat: {
             licenseText: true,
           },

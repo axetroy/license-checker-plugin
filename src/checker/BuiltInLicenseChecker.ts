@@ -5,13 +5,10 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { createHash } from 'node:crypto';
 
 export interface LicenseCheckerOptions {
   start: string;
   excludePrivatePackages?: boolean;
-  production?: boolean;
-  development?: boolean;
   customFormat?: Record<string, unknown>;
 }
 
@@ -116,31 +113,6 @@ function parseSpdxExpression(license: string): string | null {
 }
 
 /**
- * Get license title from file content or SPDX expression
- */
-function getLicenseTitle(content: string): string {
-  const trimmed = content.trim();
-  const spdxResult = parseSpdxExpression(trimmed);
-  if (spdxResult) {
-    return spdxResult;
-  }
-
-  for (const [pattern, license] of LICENSE_PATTERNS) {
-    if (pattern.test(trimmed)) {
-      if (license.endsWith('*')) {
-        return license;
-      }
-      const normalized = license.toUpperCase().replace(/\s+/g, '-');
-      if (VALID_SPDX_LICENSES.has(normalized)) {
-        return normalized;
-      }
-    }
-  }
-
-  return 'UNKNOWN';
-}
-
-/**
  * Extract copyright information from license file content
  */
 function extractCopyright(content: string): string | undefined {
@@ -169,29 +141,33 @@ function extractCopyright(content: string): string | undefined {
  * Find license file in a package directory
  */
 function findLicenseFile(packageDir: string): string | null {
-  for (const basename of LICENSE_BASENAMES) {
-    const licensePath = path.join(packageDir, 'LICENSE');
-    if (fs.existsSync(licensePath)) {
-      return licensePath;
-    }
-    try {
-      const files = fs.readdirSync(packageDir);
-      for (const file of files) {
-        if (basename.test(file) && fs.statSync(path.join(packageDir, file)).isFile()) {
-          return path.join(packageDir, file);
+  try {
+    const files = fs.readdirSync(packageDir);
+    const candidates: Array<{ file: string; order: number }> = [];
+
+    for (const file of files) {
+      const fullPath = path.join(packageDir, file);
+      if (!fs.statSync(fullPath).isFile()) continue;
+
+      for (let i = 0; i < LICENSE_BASENAMES.length; i++) {
+        if (LICENSE_BASENAMES[i].test(file)) {
+          candidates.push({ file: fullPath, order: i });
+          break;
         }
       }
-    } catch {
-      // Ignore errors
     }
+
+    candidates.sort((a, b) => a.order - b.order);
+    return candidates.length > 0 ? candidates[0].file : null;
+  } catch {
+    return null;
   }
-  return null;
 }
 
 /**
  * Read and process package.json
  */
-function readPackageJson(packageJsonPath: string): { name?: string; version?: string; license?: string | object; licenses?: string | object[]; repository?: string | object; author?: string | object; homepage?: string } | null {
+function readPackageJson(packageJsonPath: string): { name?: string; version?: string; license?: string | object; licenses?: string | object[]; repository?: string | object; author?: string | object; homepage?: string; private?: boolean } | null {
   try {
     const content = fs.readFileSync(packageJsonPath, 'utf-8');
     return JSON.parse(content);
@@ -262,7 +238,7 @@ function getAuthorString(author: string | object | undefined): { publisher?: str
 /**
  * Traverse node_modules to find packages
  */
-function findPackages(startPath: string, maxDepth: number = 3): string[] {
+function findPackages(startPath: string): string[] {
   const packages: string[] = [];
   const nodeModulesPath = path.join(startPath, 'node_modules');
 
@@ -270,52 +246,41 @@ function findPackages(startPath: string, maxDepth: number = 3): string[] {
     return packages;
   }
 
-  function traverse(currentPath: string, depth: number): void {
-    if (depth > maxDepth) return;
+  try {
+    const entries = fs.readdirSync(nodeModulesPath, { withFileTypes: true });
 
-    try {
-      const entries = fs.readdirSync(currentPath, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      if (entry.name.startsWith('.')) continue;
 
-      for (const entry of entries) {
-        if (!entry.isDirectory()) continue;
-        if (entry.name.startsWith('.')) continue;
-        if (entry.name.startsWith('@')) {
-          const scopeDir = path.join(currentPath, entry.name);
-          try {
-            const scopeEntries = fs.readdirSync(scopeDir, { withFileTypes: true });
-            for (const scopeEntry of scopeEntries) {
-              if (!scopeEntry.isDirectory()) continue;
-              const packagePath = path.join(scopeDir, scopeEntry.name);
-              const packageJson = path.join(packagePath, 'package.json');
-              if (fs.existsSync(packageJson)) {
-                packages.push(packagePath);
-              }
+      if (entry.name.startsWith('@')) {
+        const scopeDir = path.join(nodeModulesPath, entry.name);
+        try {
+          const scopeEntries = fs.readdirSync(scopeDir, { withFileTypes: true });
+          for (const scopeEntry of scopeEntries) {
+            if (!scopeEntry.isDirectory()) continue;
+            const packagePath = path.join(scopeDir, scopeEntry.name);
+            const packageJson = path.join(packagePath, 'package.json');
+            if (fs.existsSync(packageJson)) {
+              packages.push(packagePath);
             }
-          } catch {
-            // Ignore errors
           }
-        } else {
-          const packagePath = path.join(currentPath, entry.name);
-          const packageJson = path.join(packagePath, 'package.json');
-          if (fs.existsSync(packageJson)) {
-            packages.push(packagePath);
-          }
+        } catch {
+          // Ignore errors
+        }
+      } else {
+        const packagePath = path.join(nodeModulesPath, entry.name);
+        const packageJson = path.join(packagePath, 'package.json');
+        if (fs.existsSync(packageJson)) {
+          packages.push(packagePath);
         }
       }
-    } catch {
-      // Ignore errors
     }
+  } catch {
+    // Ignore errors
   }
 
-  traverse(nodeModulesPath, 0);
   return packages;
-}
-
-/**
- * Calculate MD5 hash of file content
- */
-function calculateHash(content: string): string {
-  return createHash('md5').update(content).digest('hex');
 }
 
 /**
@@ -387,7 +352,7 @@ export function builtInLicenseChecker(
         publisher: authorInfo.publisher,
         email: authorInfo.email,
         url: packageJson.homepage,
-        private: false,
+        private: packageJson.private === true,
         path: packagePath,
       };
     }
