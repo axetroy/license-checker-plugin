@@ -137,6 +137,107 @@ describe('LicensePluginCore — compound license strings', () => {
     });
   });
 
+  describe('multi-version licenses', () => {
+    it('returns correct license for each version of the same package', async () => {
+      MockLicenseDatabase.prototype.getLicense.mockImplementation(
+        (name: string, version: string) => {
+          if (name === 'packageA' && version === '1.0.0') return { license: 'MIT' };
+          if (name === 'packageA' && version === '2.0.0') return { license: 'GPL-3.0' };
+          return { license: 'UNKNOWN' };
+        }
+      );
+      const core = new LicensePluginCore({ workspaceRoot: '/test' });
+      await core.initialize('/test', mockContext);
+
+      const packages = new Map<string, PackageInfo>();
+      packages.set('packageA@1.0.0', makePackage('packageA', '1.0.0'));
+      packages.set('packageA@2.0.0', makePackage('packageA', '2.0.0'));
+
+      const { items, errors } = await core.generateLicenseItems(packages, mockContext);
+      expect(errors).toEqual([]);
+      expect(items).toHaveLength(2);
+
+      const v1 = items.find((i) => i.package.version === '1.0.0');
+      const v2 = items.find((i) => i.package.version === '2.0.0');
+      expect(v1?.license.license).toBe('MIT');
+      expect(v2?.license.license).toBe('GPL-3.0');
+    });
+
+    it('returns UNKNOWN for one version when not in cache', async () => {
+      MockLicenseDatabase.prototype.getLicense.mockImplementation(
+        (name: string, version: string) => {
+          if (name === 'packageA' && version === '1.0.0') return { license: 'MIT' };
+          return { license: 'UNKNOWN' };
+        }
+      );
+      const core = new LicensePluginCore({ workspaceRoot: '/test' });
+      await core.initialize('/test', mockContext);
+
+      const packages = new Map<string, PackageInfo>();
+      packages.set('packageA@1.0.0', makePackage('packageA', '1.0.0'));
+      packages.set('packageA@2.0.0', makePackage('packageA', '2.0.0'));
+
+      const { items, errors } = await core.generateLicenseItems(packages, mockContext);
+      expect(errors).toEqual([]);
+      expect(items).toHaveLength(2);
+
+      const v1 = items.find((i) => i.package.version === '1.0.0');
+      const v2 = items.find((i) => i.package.version === '2.0.0');
+      expect(v1?.license.license).toBe('MIT');
+      expect(v2?.license.license).toBe('UNKNOWN');
+    });
+
+    it('enforces onlyAllow per-version correctly', async () => {
+      MockLicenseDatabase.prototype.getLicense.mockImplementation(
+        (name: string, version: string) => {
+          if (name === 'packageA' && version === '1.0.0') return { license: 'MIT' };
+          if (name === 'packageA' && version === '2.0.0') return { license: 'GPL-3.0' };
+          return { license: 'UNKNOWN' };
+        }
+      );
+      const core = new LicensePluginCore({
+        onlyAllow: ['MIT'],
+        workspaceRoot: '/test',
+      });
+      await core.initialize('/test', mockContext);
+
+      const packages = new Map<string, PackageInfo>();
+      packages.set('packageA@1.0.0', makePackage('packageA', '1.0.0'));
+      packages.set('packageA@2.0.0', makePackage('packageA', '2.0.0'));
+
+      const { items, errors } = await core.generateLicenseItems(packages, mockContext);
+      expect(items).toEqual([]);
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0]).toContain('GPL-3.0');
+      expect(errors[0]).toContain('packageA@2.0.0');
+    });
+
+    it('enforces failOn per-version correctly', async () => {
+      MockLicenseDatabase.prototype.getLicense.mockImplementation(
+        (name: string, version: string) => {
+          if (name === 'packageA' && version === '1.0.0') return { license: 'MIT' };
+          if (name === 'packageA' && version === '2.0.0') return { license: 'GPL-3.0' };
+          return { license: 'UNKNOWN' };
+        }
+      );
+      const core = new LicensePluginCore({
+        failOn: ['GPL-3.0'],
+        workspaceRoot: '/test',
+      });
+      await core.initialize('/test', mockContext);
+
+      const packages = new Map<string, PackageInfo>();
+      packages.set('packageA@1.0.0', makePackage('packageA', '1.0.0'));
+      packages.set('packageA@2.0.0', makePackage('packageA', '2.0.0'));
+
+      const { items, errors } = await core.generateLicenseItems(packages, mockContext);
+      expect(items).toEqual([]);
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0]).toContain('GPL-3.0');
+      expect(errors[0]).toContain('packageA@2.0.0');
+    });
+  });
+
   describe('failOn with compound licenses', () => {
     it('fails OR expression when exact compound string matches fail list', async () => {
       MockLicenseDatabase.prototype.getLicense.mockReturnValue({
