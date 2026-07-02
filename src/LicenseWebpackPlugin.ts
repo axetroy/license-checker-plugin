@@ -59,6 +59,11 @@ export interface LicenseWebpackPluginOptions {
   deduplicateLicense?: boolean;
   cache?: boolean;
   workspaceRoot?: string;
+  /**
+   * When false (default), initialization errors are re-thrown and cause the build to fail.
+   * Set to true to emit a warning instead and allow the build to continue.
+   */
+  dangerouslyAllowFailingBuild?: boolean;
   /** External recorder shared across multiple compiler instances. */
   recorder?: Recorder;
   /**
@@ -85,9 +90,12 @@ const PLUGIN_NAME = 'LicenseWebpackPlugin';
 const DEFAULT_PROCESS_ASSETS_STAGE_REPORT = 5000;
 
 export class LicenseWebpackPlugin implements WebpackPluginInstance {
-  private readonly options: Required<Omit<LicenseWebpackPluginOptions, 'recorder' | 'waitForRecorderCount'>> & {
+  private readonly options: Required<
+    Omit<LicenseWebpackPluginOptions, 'recorder' | 'waitForRecorderCount' | 'dangerouslyAllowFailingBuild'>
+  > & {
     recorder: Recorder | undefined;
     waitForRecorderCount: number | undefined;
+    dangerouslyAllowFailingBuild: boolean;
   };
   private db: LicenseDatabase;
 
@@ -110,6 +118,7 @@ export class LicenseWebpackPlugin implements WebpackPluginInstance {
       deduplicateLicense: options.deduplicateLicense !== false,
       cache: options.cache !== false,
       workspaceRoot: options.workspaceRoot || '',
+      dangerouslyAllowFailingBuild: options.dangerouslyAllowFailingBuild === true,
       recorder: options.recorder,
       recordOnly: options.recordOnly === true,
       waitForRecorderCount: options.waitForRecorderCount,
@@ -159,10 +168,14 @@ export class LicenseWebpackPlugin implements WebpackPluginInstance {
     try {
       await this.db.initialize(startPath);
     } catch (error) {
-      compilation.warnings.push(
-        new Error(`LicenseWebpackPlugin: Failed to initialize license database: ${String(error)}`)
-      );
-      return;
+      const errorMessage = `LicenseWebpackPlugin: Failed to initialize license database: ${String(error)}`;
+      if (this.options.dangerouslyAllowFailingBuild) {
+        compilation.warnings.push(new Error(errorMessage));
+        return;
+      } else {
+        compilation.errors.push(new Error(errorMessage));
+        return;
+      }
     }
 
     const scanner = new PackageScanner();

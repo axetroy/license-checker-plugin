@@ -52,10 +52,15 @@ export class LicenseDatabase {
         }
       }
 
+      // licenseText can be boolean (true) from license-checker if file is unreadable
+      // Only store valid string license texts
+      const licenseText =
+        typeof info.licenseText === 'string' && info.licenseText.length > 0 ? info.licenseText : undefined;
+
       const licenseInfo: LicenseInfo = {
         license: licenseStr,
         licenseFile: info.licenseFile,
-        licenseText: info.licenseText,
+        licenseText,
         repository: info.repository,
         homepage: info.homepage || info.url,
         author: info.publisher

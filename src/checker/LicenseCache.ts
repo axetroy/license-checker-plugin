@@ -8,13 +8,16 @@ export class LicenseCache {
   set(packageKey: string, info: LicenseInfo): void {
     this.cache.set(packageKey, info);
 
-    if (info.licenseText) {
+    // licenseText can be a boolean (true) from license-checker if file is unreadable
+    if (typeof info.licenseText === 'string' && info.licenseText.length > 0) {
       const hash = hashString(info.licenseText);
-      const packages = this.textHashToPackages.get(hash) ?? [];
-      if (!packages.includes(packageKey)) {
-        packages.push(packageKey);
+      if (hash) {
+        const packages = this.textHashToPackages.get(hash) ?? [];
+        if (!packages.includes(packageKey)) {
+          packages.push(packageKey);
+        }
+        this.textHashToPackages.set(hash, packages);
       }
-      this.textHashToPackages.set(hash, packages);
     }
   }
 
