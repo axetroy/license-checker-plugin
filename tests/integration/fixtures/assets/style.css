@@ -1,0 +1,6 @@
+/* Test CSS file */
+@import 'style2.css';
+
+body {
+  color: red;
+}
