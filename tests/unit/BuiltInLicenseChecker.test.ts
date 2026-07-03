@@ -428,6 +428,78 @@ describe('BuiltInLicenseChecker', () => {
     });
   });
 
+  describe('nested node_modules detection', () => {
+    it('detects packages in nested node_modules', async () => {
+      const pkgADir = createPackage('package-a', '1.0.0', { license: 'MIT' });
+      createPackage('package-b', '1.0.0', { license: 'Apache-2.0' });
+
+      const pkgCNodeModules = path.join(pkgADir, 'node_modules');
+      fs.mkdirSync(pkgCNodeModules, { recursive: true });
+      const pkgCDir = path.join(pkgCNodeModules, 'package-c');
+      fs.mkdirSync(pkgCDir, { recursive: true });
+      fs.writeFileSync(path.join(pkgCDir, 'package.json'), JSON.stringify({
+        name: 'package-c', version: '1.0.0', license: 'MIT',
+      }));
+
+      const packages = await builtInLicenseChecker({ start: tempDir });
+      expect(packages['package-a@1.0.0']).toBeDefined();
+      expect(packages['package-b@1.0.0']).toBeDefined();
+      expect(packages['package-c@1.0.0']).toBeDefined();
+    });
+
+    it('detects packages at multiple levels of nesting', async () => {
+      const pkgADir = createPackage('package-a', '1.0.0', { license: 'MIT' });
+
+      const level2 = path.join(pkgADir, 'node_modules', 'package-b');
+      fs.mkdirSync(level2, { recursive: true });
+      fs.writeFileSync(path.join(level2, 'package.json'), JSON.stringify({
+        name: 'package-b', version: '2.0.0', license: 'ISC',
+      }));
+
+      const level3 = path.join(level2, 'node_modules', 'package-c');
+      fs.mkdirSync(level3, { recursive: true });
+      fs.writeFileSync(path.join(level3, 'package.json'), JSON.stringify({
+        name: 'package-c', version: '3.0.0', license: 'MIT',
+      }));
+
+      const packages = await builtInLicenseChecker({ start: tempDir });
+      expect(packages['package-a@1.0.0']).toBeDefined();
+      expect(packages['package-b@2.0.0']).toBeDefined();
+      expect(packages['package-c@3.0.0']).toBeDefined();
+    });
+
+    it('detects scoped packages in nested node_modules', async () => {
+      const pkgADir = createPackage('package-a', '1.0.0', { license: 'MIT' });
+
+      const nestedPkgDir = path.join(pkgADir, 'node_modules', '@scope', 'nested-pkg');
+      fs.mkdirSync(nestedPkgDir, { recursive: true });
+      fs.writeFileSync(path.join(nestedPkgDir, 'package.json'), JSON.stringify({
+        name: '@scope/nested-pkg', version: '1.0.0', license: 'BSD-3-Clause',
+      }));
+
+      const packages = await builtInLicenseChecker({ start: tempDir });
+      expect(packages['package-a@1.0.0']).toBeDefined();
+      expect(packages['@scope/nested-pkg@1.0.0']).toBeDefined();
+    });
+
+    it('avoids infinite recursion with circular node_modules', async () => {
+      const pkgADir = createPackage('package-a', '1.0.0', { license: 'MIT' });
+      const pkgBDir = createPackage('package-b', '1.0.0', { license: 'MIT' });
+
+      // package-a/node_modules/package-b → points back to package-b
+      const nestedDir = path.join(pkgADir, 'node_modules');
+      fs.mkdirSync(nestedDir, { recursive: true });
+      fs.symlinkSync(pkgBDir, path.join(nestedDir, 'package-b'), 'dir');
+
+      const packages = await builtInLicenseChecker({ start: tempDir });
+      expect(packages['package-a@1.0.0']).toBeDefined();
+      expect(packages['package-b@1.0.0']).toBeDefined();
+      // Should not infinite-loop, returns all packages
+      expect(Object.keys(packages).length).toBe(2);
+    });
+
+  });
+
   describe('empty node_modules', () => {
     it('returns empty packages when node_modules is empty', async () => {
       fs.mkdirSync(path.join(tempDir, 'node_modules'), { recursive: true });

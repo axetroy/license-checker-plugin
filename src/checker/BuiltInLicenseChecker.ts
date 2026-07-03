@@ -181,52 +181,62 @@ export function parseAuthor(author: string | object | undefined): { name?: strin
 
 async function findPackages(startPath: string): Promise<string[]> {
   const packages: string[] = [];
-  const nodeModulesPath = path.join(startPath, 'node_modules');
+  const visited = new Set<string>();
 
-  try {
-    await stat(nodeModulesPath);
-  } catch {
-    return packages;
-  }
+  async function scan(nodeModulesPath: string): Promise<void> {
+    if (visited.has(nodeModulesPath)) return;
+    visited.add(nodeModulesPath);
 
-  try {
-    const entries = await readdir(nodeModulesPath, { withFileTypes: true });
+    try {
+      await stat(nodeModulesPath);
+    } catch {
+      return;
+    }
 
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      if (entry.name.startsWith('.')) continue;
+    try {
+      const entries = await readdir(nodeModulesPath, { withFileTypes: true });
 
-      if (entry.name.startsWith('@')) {
-        const scopeDir = path.join(nodeModulesPath, entry.name);
-        try {
-          const scopeEntries = await readdir(scopeDir, { withFileTypes: true });
-          for (const scopeEntry of scopeEntries) {
-            if (!scopeEntry.isDirectory()) continue;
-            const pkgPath = path.join(scopeDir, scopeEntry.name);
-            try {
-              await stat(path.join(pkgPath, 'package.json'));
-              packages.push(pkgPath);
-            } catch {
-              // Skip packages without package.json
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        if (entry.name.startsWith('.')) continue;
+
+        if (entry.name.startsWith('@')) {
+          const scopeDir = path.join(nodeModulesPath, entry.name);
+          try {
+            const scopeEntries = await readdir(scopeDir, { withFileTypes: true });
+            for (const scopeEntry of scopeEntries) {
+              if (!scopeEntry.isDirectory()) continue;
+              const pkgPath = path.join(scopeDir, scopeEntry.name);
+              try {
+                await stat(path.join(pkgPath, 'package.json'));
+                packages.push(pkgPath);
+                // Recursively scan nested node_modules
+                await scan(path.join(pkgPath, 'node_modules'));
+              } catch {
+                // Skip packages without package.json
+              }
             }
+          } catch {
+            // Ignore errors
           }
-        } catch {
-          // Ignore errors
-        }
-      } else {
-        const pkgPath = path.join(nodeModulesPath, entry.name);
-        try {
-          await stat(path.join(pkgPath, 'package.json'));
-          packages.push(pkgPath);
-        } catch {
-          // Skip packages without package.json
+        } else {
+          const pkgPath = path.join(nodeModulesPath, entry.name);
+          try {
+            await stat(path.join(pkgPath, 'package.json'));
+            packages.push(pkgPath);
+            // Recursively scan nested node_modules
+            await scan(path.join(pkgPath, 'node_modules'));
+          } catch {
+            // Skip packages without package.json
+          }
         }
       }
+    } catch {
+      // Ignore errors
     }
-  } catch {
-    // Ignore errors
   }
 
+  await scan(path.join(startPath, 'node_modules'));
   return packages;
 }
 
