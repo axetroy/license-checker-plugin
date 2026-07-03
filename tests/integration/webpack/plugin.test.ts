@@ -30,6 +30,9 @@ function prepareOutputDir(name: string): string {
   return outputPath;
 }
 
+const WORKSPACE_ROOT = path.resolve(__dirname, '../../..');
+const CORE_UTIL_IS_DIR = path.join(WORKSPACE_ROOT, 'node_modules', 'core-util-is');
+
 describe('LicenseWebpackPlugin integration', () => {
   afterAll(() => {
     fs.rmSync(path.resolve(__dirname, 'output', 'txt'), { recursive: true, force: true });
@@ -41,6 +44,8 @@ describe('LicenseWebpackPlugin integration', () => {
     fs.rmSync(path.resolve(__dirname, 'output', 'only-allow-fail'), { recursive: true, force: true });
     fs.rmSync(path.resolve(__dirname, 'output', 'fail-on-fail'), { recursive: true, force: true });
     fs.rmSync(path.resolve(__dirname, 'output', 'fail-on-pass'), { recursive: true, force: true });
+    fs.rmSync(path.resolve(__dirname, 'output', 'core-util-is-txt'), { recursive: true, force: true });
+    fs.rmSync(CORE_UTIL_IS_DIR, { recursive: true, force: true });
   });
 
   it('generates a licenses.txt file with txt format', async () => {
@@ -294,5 +299,76 @@ describe('LicenseWebpackPlugin integration', () => {
       const parsed = JSON.parse(fs.readFileSync(licenseFile, 'utf-8')) as Array<{ name: string }>;
       expect(parsed.some((item) => item.name === 'lodash')).toBe(true);
     });
+  });
+
+  it('generates txt output snapshot for core-util-is package', async () => {
+    fs.mkdirSync(path.join(CORE_UTIL_IS_DIR, 'lib'), { recursive: true });
+    fs.writeFileSync(path.join(CORE_UTIL_IS_DIR, 'package.json'), JSON.stringify({
+      name: 'core-util-is',
+      version: '1.0.3',
+      license: 'MIT',
+      main: 'lib/util.js',
+    }));
+    fs.writeFileSync(
+      path.join(CORE_UTIL_IS_DIR, 'lib', 'util.js'),
+      [
+        'function isArray(arg) { return Array.isArray(arg); }',
+        'exports.isArray = isArray;',
+        '',
+      ].join('\n')
+    );
+    fs.writeFileSync(
+      path.join(CORE_UTIL_IS_DIR, 'LICENSE'),
+      [
+        'Copyright Node.js contributors. All rights reserved.',
+        '',
+        'Permission is hereby granted, free of charge, to any person obtaining a copy',
+        'of this software and associated documentation files (the "Software"), to',
+        'deal in the Software without restriction, including without limitation the',
+        'rights to use, copy, modify, merge, publish, distribute, sublicense, and/or',
+        'sell copies of the Software, and to permit persons to whom the Software is',
+        'furnished to do so, subject to the following conditions:',
+        '',
+        'The above copyright notice and this permission notice shall be included in',
+        'all copies or substantial portions of the Software.',
+        '',
+        'THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR',
+        'IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,',
+        'FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE',
+        'AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER',
+        'LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING',
+        'FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS',
+        'IN THE SOFTWARE.',
+        '',
+      ].join('\n')
+    );
+
+    const outputPath = prepareOutputDir('core-util-is-txt');
+
+    const stats = await runWebpack({
+      mode: 'development',
+      entry: path.resolve(__dirname, '../fixtures/entry-core-util-is.js'),
+      output: {
+        path: outputPath,
+        filename: 'bundle.js',
+      },
+      plugins: [
+        new LicenseWebpackPlugin({
+          filename: 'licenses.txt',
+          format: 'txt',
+          includeAuthor: false,
+          includeHomepage: false,
+          includeRepository: false,
+          includeLicenseText: true,
+          workspaceRoot: WORKSPACE_ROOT,
+        }),
+      ],
+    });
+
+    expect(stats.hasErrors()).toBe(false);
+    const licenseFile = path.join(outputPath, 'licenses.txt');
+    expect(fs.existsSync(licenseFile)).toBe(true);
+    const content = fs.readFileSync(licenseFile, 'utf-8');
+    expect(content).toMatchSnapshot();
   });
 });

@@ -1,4 +1,7 @@
+import { readFileSync, readdirSync, statSync } from 'fs';
+import { join } from 'path';
 import { LicenseDatabase } from './checker/LicenseDatabase';
+import { normalizeLicense } from './checker/BuiltInLicenseChecker';
 import { Formatter } from './formatter/Formatter';
 import { HtmlFormatter } from './formatter/HtmlFormatter';
 import { JsonFormatter } from './formatter/JsonFormatter';
@@ -149,9 +152,16 @@ export class LicensePluginCore {
     const entries: Array<{ info: PackageInfo; licenseInfo: LicenseInfo }> = [];
     for (const pkgInfo of packages.values()) {
       if (this.options.excludePackages.includes(pkgInfo.name)) continue;
+
+      let licenseInfo = this.db.getLicense(pkgInfo.name, pkgInfo.version);
+
+      if (licenseInfo.license === 'UNKNOWN') {
+        licenseInfo = this.readLicenseFromPackage(pkgInfo);
+      }
+
       entries.push({
         info: pkgInfo,
-        licenseInfo: this.filterLicenseFields(this.db.getLicense(pkgInfo.name, pkgInfo.version)),
+        licenseInfo: this.filterLicenseFields(licenseInfo),
       });
     }
     return entries;
@@ -208,6 +218,71 @@ export class LicensePluginCore {
       }
     }
     return merged;
+  }
+
+  private readLicenseFromPackage(pkgInfo: PackageInfo): LicenseInfo {
+    try {
+      const raw = readFileSync(pkgInfo.packageJsonPath, 'utf-8');
+      const pkg = JSON.parse(raw) as {
+        license?: string | { type?: string };
+        licenses?: Array<{ type?: string }>;
+      };
+
+      let licenseStr: string | undefined;
+      if (pkg.license) {
+        licenseStr = typeof pkg.license === 'string' ? pkg.license : (pkg.license as { type?: string }).type;
+      } else if (Array.isArray(pkg.licenses)) {
+        licenseStr = pkg.licenses.map((l) => l.type || 'UNKNOWN').join(' AND ');
+      }
+
+      if (!licenseStr) return { license: 'UNKNOWN' };
+      licenseStr = normalizeLicense(licenseStr);
+
+      const result: LicenseInfo = { license: licenseStr };
+
+      if (this.options.includeLicenseText) {
+        const licenseText = this.readLicenseFileText(pkgInfo.path);
+        if (licenseText) {
+          result.licenseText = licenseText;
+        }
+      }
+
+      return result;
+    } catch {
+      return { license: 'UNKNOWN' };
+    }
+  }
+
+  private readLicenseFileText(packageDir: string): string | undefined {
+    const basenames = [
+      /^LICENSE$/i, /^LICENSE\-\w+$/i, /^LICENCE$/i, /^LICENCE\-\w+$/i,
+      /^MIT-LICENSE$/i, /^COPYING$/i, /^COPYRIGHT$/i,
+    ];
+    try {
+      const files = readdirSync(packageDir);
+      const candidates: Array<{ file: string; order: number }> = [];
+      for (const file of files) {
+        const fullPath = join(packageDir, file);
+        try {
+          if (!statSync(fullPath).isFile()) continue;
+        } catch {
+          continue;
+        }
+        for (let i = 0; i < basenames.length; i++) {
+          if (basenames[i].test(file)) {
+            candidates.push({ file: fullPath, order: i });
+            break;
+          }
+        }
+      }
+      candidates.sort((a, b) => a.order - b.order);
+      if (candidates.length > 0) {
+        return readFileSync(candidates[0].file, 'utf-8');
+      }
+    } catch {
+      // ignore
+    }
+    return undefined;
   }
 
   format(items: OutputItem[]): string {
