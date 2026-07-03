@@ -128,12 +128,15 @@ export class LicensePluginCore {
   ): Promise<{ items: OutputItem[]; errors: string[] }> {
     const entries = this.resolveLicenseEntries(packages);
     const errors = this.checkCompliance(entries);
+
+    let items: OutputItem[];
     if (errors.length > 0) {
       for (const err of errors) context.reportError(err);
+      this.recordReport([]);
       return { items: [], errors };
     }
 
-    let items = this.buildOutputItems(entries);
+    items = this.buildOutputItems(entries);
     this.recordReport(items);
     if (this.options.recordOnly) return { items: [], errors: [] };
 

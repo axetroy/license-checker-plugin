@@ -59,7 +59,10 @@ export class LicenseWebpackPlugin implements WebpackPluginInstance {
     };
 
     const initialized = await this.core.initialize(startPath, context);
-    if (!initialized) return;
+    if (!initialized) {
+      this.core.options.recorder?.record({ items: [] });
+      return;
+    }
 
     const scanner = new PackageScanner();
     const packages = scanner.scan(compilation);
