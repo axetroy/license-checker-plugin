@@ -308,18 +308,6 @@ exports[`LicensePluginCore — compound license strings onlyAllow with compound 
 ]
 `;
 
-exports[`LicensePluginCore — compound license strings onlyAllow with compound licenses fails OR expression when exact compound string not in allow list 1`] = `
-[
-  "LicensePlugin: License "(MIT OR Apache-2.0)" for package "pkg@1.0.0" is not in the allowed list: MIT",
-]
-`;
-
-exports[`LicensePluginCore — compound license strings onlyAllow with compound licenses fails OR expression when individual licenses are in allow list (exact match required) 1`] = `
-[
-  "LicensePlugin: License "(MIT OR Apache-2.0)" for package "pkg@1.0.0" is not in the allowed list: MIT, Apache-2.0",
-]
-`;
-
 exports[`LicensePluginCore — compound license strings preserves AND expression from array licenses 1`] = `
 [
   {

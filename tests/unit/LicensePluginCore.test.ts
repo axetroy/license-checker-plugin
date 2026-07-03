@@ -63,7 +63,7 @@ describe('LicensePluginCore — compound license strings', () => {
   });
 
   describe('onlyAllow with compound licenses', () => {
-    it('fails OR expression when individual licenses are in allow list (exact match required)', async () => {
+    it('allows OR expression when component licenses are individually in allow list', async () => {
       MockLicenseDatabase.prototype.getLicense.mockReturnValue({
         license: '(MIT OR Apache-2.0)',
       });
@@ -77,13 +77,12 @@ describe('LicensePluginCore — compound license strings', () => {
       packages.set('pkg@1.0.0', makePackage('pkg', '1.0.0'));
 
       const { items, errors } = await core.generateLicenseItems(packages, mockContext);
-      expect(items).toEqual([]);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0]).toContain('(MIT OR Apache-2.0)');
-      expect(errors).toMatchSnapshot();
+      expect(errors).toEqual([]);
+      expect(items).toHaveLength(1);
+      expect(items[0].license.license).toBe('(MIT OR Apache-2.0)');
     });
 
-    it('fails OR expression when exact compound string not in allow list', async () => {
+    it('allows OR expression when at least one component is in allow list', async () => {
       MockLicenseDatabase.prototype.getLicense.mockReturnValue({
         license: '(MIT OR Apache-2.0)',
       });
@@ -97,10 +96,9 @@ describe('LicensePluginCore — compound license strings', () => {
       packages.set('pkg@1.0.0', makePackage('pkg', '1.0.0'));
 
       const { items, errors } = await core.generateLicenseItems(packages, mockContext);
-      expect(items).toEqual([]);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0]).toContain('(MIT OR Apache-2.0)');
-      expect(errors).toMatchSnapshot();
+      expect(errors).toEqual([]);
+      expect(items).toHaveLength(1);
+      expect(items[0].license.license).toBe('(MIT OR Apache-2.0)');
     });
 
     it('allows AND expression when exact compound string is in allow list', async () => {

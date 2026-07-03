@@ -1,5 +1,6 @@
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
+import spdxExpressionParse from 'spdx-expression-parse';
 import { LicenseDatabase } from './checker/LicenseDatabase';
 import { normalizeLicense } from './checker/BuiltInLicenseChecker';
 import { Formatter } from './formatter/Formatter';
@@ -179,17 +180,58 @@ export class LicensePluginCore {
   ): string[] {
     const errors: string[] = [];
     for (const { info, licenseInfo } of entries) {
-      if (this.options.onlyAllow.length > 0 && !this.options.onlyAllow.includes(licenseInfo.license)) {
+      if (this.options.onlyAllow.length > 0 && !this.isAllowed(licenseInfo.license)) {
         errors.push(
           `LicensePlugin: License "${licenseInfo.license}" for package "${info.name}@${info.version}" is not in the allowed list: ${this.options.onlyAllow.join(', ')}`
         );
-      } else if (this.options.failOn.length > 0 && this.options.failOn.includes(licenseInfo.license)) {
+      } else if (this.options.failOn.length > 0 && this.isFailed(licenseInfo.license)) {
         errors.push(
           `LicensePlugin: License "${licenseInfo.license}" for package "${info.name}@${info.version}" is in the fail list`
         );
       }
     }
     return errors;
+  }
+
+  private isAllowed(license: string): boolean {
+    if (this.options.onlyAllow.includes(license)) return true;
+    const ids = this.parseSpdxIdentifiers(license);
+    if (!ids) return false;
+    if (ids.conjunction === 'and') return ids.identifiers.every((id) => this.options.onlyAllow.includes(id));
+    if (ids.conjunction === 'or') return ids.identifiers.some((id) => this.options.onlyAllow.includes(id));
+    return false;
+  }
+
+  private isFailed(license: string): boolean {
+    if (this.options.failOn.includes(license)) return true;
+    const ids = this.parseSpdxIdentifiers(license);
+    if (!ids) return false;
+    return ids.identifiers.some((id) => this.options.failOn.includes(id));
+  }
+
+  private parseSpdxIdentifiers(
+    license: string
+  ): { identifiers: string[]; conjunction: 'and' | 'or' } | null {
+    try {
+      const node = spdxExpressionParse(license);
+      const identifiers: string[] = [];
+      let conjunction: 'and' | 'or' | null = null;
+      const walk = (n: typeof node): void => {
+        if ('license' in n) {
+          identifiers.push((n as { license: string }).license);
+        } else {
+          const expr = n as { left: typeof node; right: typeof node; conjunction: string };
+          if (!conjunction) conjunction = expr.conjunction as 'and' | 'or';
+          walk(expr.left);
+          walk(expr.right);
+        }
+      };
+      walk(node);
+      if (!conjunction) return null;
+      return { identifiers, conjunction };
+    } catch {
+      return null;
+    }
   }
 
   private buildOutputItems(
