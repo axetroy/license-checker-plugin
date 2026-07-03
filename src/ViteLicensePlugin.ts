@@ -50,12 +50,18 @@ export function viteLicensePlugin(options: LicensePluginOptions = {}): VitePlugi
       if (resolvedPackages.size === 0) return;
 
       const warnings: string[] = [];
+      const errors: string[] = [];
       const context = {
-        reportError: (msg: string) => { throw new Error(msg); },
+        reportError: (msg: string) => { errors.push(msg); },
         reportWarning: (msg: string) => warnings.push(msg),
       };
 
-      const { items } = await core.generateLicenseItems(resolvedPackages, context);
+      const { items, errors: returnedErrors } = await core.generateLicenseItems(resolvedPackages, context);
+      const allErrors = errors.concat(returnedErrors);
+      if (allErrors.length > 0) {
+        throw new Error(allErrors.join('\n'));
+      }
+
       const source = core.format(items);
 
       this.emitFile({
