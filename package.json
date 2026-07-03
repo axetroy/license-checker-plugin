@@ -22,7 +22,8 @@
     "test:webpack": "jest --testPathPattern=tests/integration/webpack/",
     "test:rspack": "jest --testPathPattern=tests/integration/rspack/",
     "test:vite": "jest --testPathPattern=tests/integration/vite/",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "prepack": "npm run build"
   },
   "keywords": [
     "webpack",
