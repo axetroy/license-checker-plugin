@@ -29,7 +29,7 @@ describe('TxtFormatter', () => {
     expect(result).toContain('Version      : 18.0.0');
     expect(result).toContain('License      : MIT');
     expect(result).toContain('Repository   : https://github.com/facebook/react');
-    expect(result).toContain('Author       : Meta Open Source <a>opensource@meta.com</a>');
+    expect(result).toContain('Author       : Meta Open Source <opensource@meta.com>');
     expect(result).toContain('License Text:');
     expect(result).toContain('MIT License');
     expect(result).toMatchSnapshot();
@@ -77,7 +77,7 @@ describe('TxtFormatter', () => {
         },
       },
     ]);
-    expect(result).toContain('Author       : Example Maintainer <a>maintainer@example.com</a>');
+    expect(result).toContain('Author       : Example Maintainer <maintainer@example.com>');
     expect(result).toMatchSnapshot();
   });
 
@@ -92,7 +92,7 @@ describe('TxtFormatter', () => {
         },
       },
     ]);
-    expect(result).toContain('Author       : Example <a>example@example.com</a>');
+    expect(result).toContain('Author       : Example <example@example.com>');
     expect(result).toMatchSnapshot();
   });
 });

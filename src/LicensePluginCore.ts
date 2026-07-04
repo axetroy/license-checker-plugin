@@ -210,6 +210,7 @@ export class LicensePluginCore {
     if (this.options.failOn.includes(license)) return true;
     const ids = this.parseSpdxIdentifiers(license);
     if (!ids) return false;
+    if (ids.conjunction === 'or') return ids.identifiers.every((id) => this.options.failOn.includes(id));
     return ids.identifiers.some((id) => this.options.failOn.includes(id));
   }
 

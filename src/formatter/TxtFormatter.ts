@@ -53,6 +53,6 @@ export class TxtFormatter implements Formatter {
     if (!match) return author.trim();
     const name = match[1].trim();
     const email = match[2].trim();
-    return name ? `${name} <a>${email}</a>` : `<a>${email}</a>`;
+    return name ? `${name} <${email}>` : `<${email}>`;
   }
 }

@@ -120,13 +120,12 @@ describe('PackageResolver', () => {
 
     expect(result1).not.toBeNull();
     expect(result2).not.toBeNull();
+    expect(result1).toBe(result2);
     expect(result1!.name).toBe('cached-pkg');
     expect(result1!.version).toBe('1.0.0');
     expect(result1!.license).toBe('MIT');
-    expect(result1!.chunks).toEqual(['main']);
-    expect(result1!.modules).toEqual([module1]);
-    expect(result2!.chunks).toEqual(['main', 'vendor']);
-    expect(result2!.modules).toEqual([module1, module2]);
+    expect(result1!.chunks).toEqual(['main', 'vendor']);
+    expect(result1!.modules).toEqual([module1, module2]);
   });
 
   it('returns license string from package.json', () => {

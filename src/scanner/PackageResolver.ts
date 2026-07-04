@@ -102,10 +102,11 @@ export class PackageResolver {
   }
 
   private mergeModuleInfo(existing: PackageInfo, chunkName: string, modulePath: string): PackageInfo {
-    if (!existing.chunks.includes(chunkName) || !existing.modules.includes(modulePath)) {
-      const chunks = existing.chunks.includes(chunkName) ? existing.chunks : [...existing.chunks, chunkName];
-      const modules = existing.modules.includes(modulePath) ? existing.modules : [...existing.modules, modulePath];
-      return { ...existing, chunks, modules };
+    if (!existing.chunks.includes(chunkName)) {
+      existing.chunks.push(chunkName);
+    }
+    if (!existing.modules.includes(modulePath)) {
+      existing.modules.push(modulePath);
     }
     return existing;
   }

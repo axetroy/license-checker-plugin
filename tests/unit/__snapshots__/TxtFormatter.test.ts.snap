@@ -7,7 +7,7 @@ Package Name : react
 Version      : 18.0.0
 License      : MIT
 Repository   : https://github.com/facebook/react
-Author       : Example <a>example@example.com</a>
+Author       : Example <example@example.com>
 
 License Text:
 MIT License
@@ -22,7 +22,7 @@ Package Name : react
 Version      : 18.0.0
 License      : MIT
 Repository   : https://github.com/facebook/react
-Author       : Meta Open Source <a>opensource@meta.com</a>
+Author       : Meta Open Source <opensource@meta.com>
 
 License Text:
 MIT License
@@ -43,7 +43,7 @@ Package Name : react
 Version      : 18.0.0
 License      : MIT
 Repository   : https://github.com/facebook/react
-Author       : Example Maintainer <a>maintainer@example.com</a>
+Author       : Example Maintainer <maintainer@example.com>
 
 License Text:
 MIT License
@@ -58,7 +58,7 @@ Package Name : react
 Version      : 18.0.0
 License      : MIT
 Repository   : https://github.com/facebook/react
-Author       : Meta Open Source <a>opensource@meta.com</a>
+Author       : Meta Open Source <opensource@meta.com>
 "
 `;
 
