@@ -17,16 +17,30 @@ export class MarkdownFormatter implements Formatter {
     ];
 
     for (const item of items) {
+      const name = this.escapeForMarkdown(item.package.name);
+      const version = this.escapeForMarkdown(item.package.version);
+      const license = this.escapeForMarkdown(item.license.license);
+      
       if (hasLicenseText) {
         const licenseText = item.license.licenseText
-          ? item.license.licenseText.replace(/\n/g, '<br>')
+          ? this.escapeForMarkdown(item.license.licenseText).replace(/\n/g, '<br>')
           : '';
-        lines.push(`| ${item.package.name} | ${item.package.version} | ${item.license.license} | ${licenseText} |`);
+        lines.push(`| ${name} | ${version} | ${license} | ${licenseText} |`);
       } else {
-        lines.push(`| ${item.package.name} | ${item.package.version} | ${item.license.license} |`);
+        lines.push(`| ${name} | ${version} | ${license} |`);
       }
     }
 
     return `${lines.join('\n')}\n`;
+  }
+
+  private escapeForMarkdown(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;')
+      .replace(/\|/g, '\\|');
   }
 }

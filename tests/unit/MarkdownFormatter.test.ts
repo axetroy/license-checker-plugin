@@ -70,7 +70,7 @@ describe('MarkdownFormatter', () => {
     expect(result.endsWith('\n')).toBe(true);
   });
 
-  it('handles package name with pipe character by including it as-is', () => {
+  it('escapes pipe character in package name to prevent table breakage', () => {
     const items: OutputItem[] = [
       {
         package: { name: 'a|b', version: '1.0', path: '', packageJsonPath: '', chunks: [], modules: [] },
@@ -79,7 +79,9 @@ describe('MarkdownFormatter', () => {
     ];
     const formatter = new MarkdownFormatter();
     const result = formatter.generate(items);
-    expect(result).toContain('| a|b | 1.0 | MIT |');
+    // Pipe should be escaped to prevent markdown table breakage
+    expect(result).toContain('a\\|b');
+    expect(result).not.toContain('| a|b |');
   });
 
   it('includes license text column when any item has licenseText', () => {
@@ -110,5 +112,57 @@ describe('MarkdownFormatter', () => {
     const formatter = new MarkdownFormatter();
     const result = formatter.generate(items);
     expect(result).toContain('Line1<br>Line2<br>Line3');
+  });
+
+  it('escapes HTML tags in license text to prevent XSS', () => {
+    const items: OutputItem[] = [
+      {
+        package: { name: 'pkg', version: '1.0', path: '', packageJsonPath: '', chunks: [], modules: [] },
+        license: { license: 'MIT', licenseText: '<script>alert("xss")</script>' },
+      },
+    ];
+    const formatter = new MarkdownFormatter();
+    const result = formatter.generate(items);
+    // HTML should be escaped, not rendered as-is
+    expect(result).toContain('&lt;script&gt;');
+    expect(result).not.toContain('<script>');
+  });
+
+  it('escapes HTML entities in license text', () => {
+    const items: OutputItem[] = [
+      {
+        package: { name: 'pkg', version: '1.0', path: '', packageJsonPath: '', chunks: [], modules: [] },
+        license: { license: 'MIT', licenseText: 'Use &amp; abuse <b>bold</b>' },
+      },
+    ];
+    const formatter = new MarkdownFormatter();
+    const result = formatter.generate(items);
+    expect(result).toContain('Use &amp;amp; abuse &lt;b&gt;bold&lt;/b&gt;');
+  });
+
+  it('escapes pipe characters in license text to prevent table breakage', () => {
+    const items: OutputItem[] = [
+      {
+        package: { name: 'pkg', version: '1.0', path: '', packageJsonPath: '', chunks: [], modules: [] },
+        license: { license: 'MIT', licenseText: 'Value: A | B' },
+      },
+    ];
+    const formatter = new MarkdownFormatter();
+    const result = formatter.generate(items);
+    // Pipe should be escaped to prevent markdown table breakage
+    expect(result).toContain('Value: A \\| B');
+    expect(result).not.toContain('| A | B |');
+  });
+
+  it('escapes double quotes in license text', () => {
+    const items: OutputItem[] = [
+      {
+        package: { name: 'pkg', version: '1.0', path: '', packageJsonPath: '', chunks: [], modules: [] },
+        license: { license: 'MIT', licenseText: 'Say "Hello"' },
+      },
+    ];
+    const formatter = new MarkdownFormatter();
+    const result = formatter.generate(items);
+    expect(result).toContain('&quot;Hello&quot;');
   });
 });
