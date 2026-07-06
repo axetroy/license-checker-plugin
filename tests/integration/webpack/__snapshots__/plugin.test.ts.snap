@@ -6,6 +6,8 @@ exports[`LicenseWebpackPlugin integration generates txt output snapshot for core
 Package Name : core-util-is
 Version      : 1.0.3
 License      : MIT
+Direct       : false
+Dependency Path : /
 
 License Text:
 Copyright Node.js contributors. All rights reserved.

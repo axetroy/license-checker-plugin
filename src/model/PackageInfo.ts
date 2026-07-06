@@ -13,4 +13,10 @@ export interface PackageInfo {
   license?: string;
   /** Whether this package is a direct dependency of the project (listed in package.json dependencies or devDependencies). */
   direct?: boolean;
+  /**
+   * The dependency path from the project root to this package.
+   * "/" means directly required by the project.
+   * "/packageA@1.0.0/packageB@2.0.0" means this package is required by packageB@2.0.0, which is required by packageA@1.0.0.
+   */
+  dependencyPath?: string;
 }

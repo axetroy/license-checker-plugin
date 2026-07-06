@@ -253,4 +253,234 @@ describe('PackageResolver', () => {
       expect(result!.direct).toBe(false);
     });
   });
+
+  describe('dependencyPath field', () => {
+    it('returns "/" for direct dependencies', () => {
+      const pkgDir = path.join(tempDir, 'node_modules', 'direct-dep');
+      fs.mkdirSync(pkgDir, { recursive: true });
+      fs.writeFileSync(path.join(pkgDir, 'package.json'), JSON.stringify({ name: 'direct-dep', version: '1.0.0' }));
+      const modulePath = path.join(pkgDir, 'index.js');
+      const resolver = new PackageResolver();
+      resolver.setProjectRoot(tempDir);
+      const result = resolver.resolve(modulePath, 'main');
+      expect(result!.dependencyPath).toBe('/');
+    });
+
+    it('returns dependency path for indirect dependencies', () => {
+      // Create parent package
+      const parentDir = path.join(tempDir, 'node_modules', 'parent');
+      fs.mkdirSync(parentDir, { recursive: true });
+      fs.writeFileSync(path.join(parentDir, 'package.json'), JSON.stringify({ name: 'parent', version: '2.0.0' }));
+      
+      // Create nested package
+      const nestedDir = path.join(parentDir, 'node_modules', 'nested-dep');
+      fs.mkdirSync(nestedDir, { recursive: true });
+      fs.writeFileSync(path.join(nestedDir, 'package.json'), JSON.stringify({ name: 'nested-dep', version: '1.0.0' }));
+      
+      const modulePath = path.join(nestedDir, 'index.js');
+      const resolver = new PackageResolver();
+      resolver.setProjectRoot(tempDir);
+      const result = resolver.resolve(modulePath, 'main');
+      expect(result!.dependencyPath).toBe('/parent@2.0.0');
+    });
+
+    it('returns full dependency path for deeply nested packages', () => {
+      // Create level1 package
+      const level1Dir = path.join(tempDir, 'node_modules', 'level1');
+      fs.mkdirSync(level1Dir, { recursive: true });
+      fs.writeFileSync(path.join(level1Dir, 'package.json'), JSON.stringify({ name: 'level1', version: '1.0.0' }));
+      
+      // Create level2 package
+      const level2Dir = path.join(level1Dir, 'node_modules', 'level2');
+      fs.mkdirSync(level2Dir, { recursive: true });
+      fs.writeFileSync(path.join(level2Dir, 'package.json'), JSON.stringify({ name: 'level2', version: '2.0.0' }));
+      
+      // Create target package
+      const targetDir = path.join(level2Dir, 'node_modules', 'target');
+      fs.mkdirSync(targetDir, { recursive: true });
+      fs.writeFileSync(path.join(targetDir, 'package.json'), JSON.stringify({ name: 'target', version: '3.0.0' }));
+      
+      const modulePath = path.join(targetDir, 'index.js');
+      const resolver = new PackageResolver();
+      resolver.setProjectRoot(tempDir);
+      const result = resolver.resolve(modulePath, 'main');
+      expect(result!.dependencyPath).toBe('/level1@1.0.0/level2@2.0.0');
+    });
+
+    it('handles scoped packages in dependency path', () => {
+      // Create scoped parent package
+      const parentDir = path.join(tempDir, 'node_modules', '@scope', 'parent');
+      fs.mkdirSync(parentDir, { recursive: true });
+      fs.writeFileSync(path.join(parentDir, 'package.json'), JSON.stringify({ name: '@scope/parent', version: '1.0.0' }));
+      
+      // Create nested package
+      const nestedDir = path.join(parentDir, 'node_modules', 'nested');
+      fs.mkdirSync(nestedDir, { recursive: true });
+      fs.writeFileSync(path.join(nestedDir, 'package.json'), JSON.stringify({ name: 'nested', version: '2.0.0' }));
+      
+      const modulePath = path.join(nestedDir, 'index.js');
+      const resolver = new PackageResolver();
+      resolver.setProjectRoot(tempDir);
+      const result = resolver.resolve(modulePath, 'main');
+      expect(result!.dependencyPath).toBe('/@scope/parent@1.0.0');
+    });
+
+    it('handles package with subpath in path', () => {
+      // Create parent package
+      const parentDir = path.join(tempDir, 'node_modules', 'parent');
+      fs.mkdirSync(parentDir, { recursive: true });
+      fs.writeFileSync(path.join(parentDir, 'package.json'), JSON.stringify({ name: 'parent', version: '1.0.0' }));
+      
+      // Create nested package directly (standard npm structure)
+      const nestedDir = path.join(parentDir, 'node_modules', 'nested');
+      fs.mkdirSync(nestedDir, { recursive: true });
+      fs.writeFileSync(path.join(nestedDir, 'package.json'), JSON.stringify({ name: 'nested', version: '2.0.0' }));
+      
+      // Module path has subpath (lib/index.js)
+      const modulePath = path.join(nestedDir, 'lib', 'index.js');
+      const resolver = new PackageResolver();
+      resolver.setProjectRoot(tempDir);
+      const result = resolver.resolve(modulePath, 'main');
+      expect(result!.dependencyPath).toBe('/parent@1.0.0');
+    });
+
+    it('uses directory name when package.json has no version', () => {
+      // Create parent package without version in package.json
+      const parentDir = path.join(tempDir, 'node_modules', 'parent');
+      fs.mkdirSync(parentDir, { recursive: true });
+      fs.writeFileSync(path.join(parentDir, 'package.json'), JSON.stringify({ name: 'parent' }));
+      
+      // Create nested package
+      const nestedDir = path.join(parentDir, 'node_modules', 'nested');
+      fs.mkdirSync(nestedDir, { recursive: true });
+      fs.writeFileSync(path.join(nestedDir, 'package.json'), JSON.stringify({ name: 'nested', version: '1.0.0' }));
+      
+      const modulePath = path.join(nestedDir, 'index.js');
+      const resolver = new PackageResolver();
+      resolver.setProjectRoot(tempDir);
+      const result = resolver.resolve(modulePath, 'main');
+      expect(result!.dependencyPath).toBe('/parent@unknown');
+    });
+
+    it('uses directory name when package.json read fails', () => {
+      // Create parent package directory but no package.json
+      const parentDir = path.join(tempDir, 'node_modules', 'parent');
+      fs.mkdirSync(parentDir, { recursive: true });
+      // Don't create package.json
+      
+      // Create nested package
+      const nestedDir = path.join(parentDir, 'node_modules', 'nested');
+      fs.mkdirSync(nestedDir, { recursive: true });
+      fs.writeFileSync(path.join(nestedDir, 'package.json'), JSON.stringify({ name: 'nested', version: '1.0.0' }));
+      
+      const modulePath = path.join(nestedDir, 'index.js');
+      const resolver = new PackageResolver();
+      resolver.setProjectRoot(tempDir);
+      const result = resolver.resolve(modulePath, 'main');
+      expect(result!.dependencyPath).toBe('/parent@unknown');
+    });
+
+    it('handles deeply nested scoped packages', () => {
+      // Create scoped parent package
+      const parentDir = path.join(tempDir, 'node_modules', '@org', 'parent');
+      fs.mkdirSync(parentDir, { recursive: true });
+      fs.writeFileSync(path.join(parentDir, 'package.json'), JSON.stringify({ name: '@org/parent', version: '1.0.0' }));
+      
+      // Create scoped child package
+      const childDir = path.join(parentDir, 'node_modules', '@org', 'child');
+      fs.mkdirSync(childDir, { recursive: true });
+      fs.writeFileSync(path.join(childDir, 'package.json'), JSON.stringify({ name: '@org/child', version: '2.0.0' }));
+      
+      // Create target package
+      const targetDir = path.join(childDir, 'node_modules', 'target');
+      fs.mkdirSync(targetDir, { recursive: true });
+      fs.writeFileSync(path.join(targetDir, 'package.json'), JSON.stringify({ name: 'target', version: '3.0.0' }));
+      
+      const modulePath = path.join(targetDir, 'index.js');
+      const resolver = new PackageResolver();
+      resolver.setProjectRoot(tempDir);
+      const result = resolver.resolve(modulePath, 'main');
+      expect(result!.dependencyPath).toBe('/@org/parent@1.0.0/@org/child@2.0.0');
+    });
+
+    it('handles Windows-style backslash paths', () => {
+      // Create parent package
+      const parentDir = path.join(tempDir, 'node_modules', 'parent');
+      fs.mkdirSync(parentDir, { recursive: true });
+      fs.writeFileSync(path.join(parentDir, 'package.json'), JSON.stringify({ name: 'parent', version: '1.0.0' }));
+      
+      // Create nested package
+      const nestedDir = path.join(parentDir, 'node_modules', 'nested');
+      fs.mkdirSync(nestedDir, { recursive: true });
+      fs.writeFileSync(path.join(nestedDir, 'package.json'), JSON.stringify({ name: 'nested', version: '2.0.0' }));
+      
+      // Use Windows-style path (backslashes)
+      const modulePath = nestedDir + '\\index.js';
+      const resolver = new PackageResolver();
+      resolver.setProjectRoot(tempDir);
+      const result = resolver.resolve(modulePath, 'main');
+      expect(result!.dependencyPath).toBe('/parent@1.0.0');
+    });
+
+    it('handles package with different name in package.json', () => {
+      // Create parent package where directory name differs from package.json name
+      const parentDir = path.join(tempDir, 'node_modules', 'pkg-dir-name');
+      fs.mkdirSync(parentDir, { recursive: true });
+      fs.writeFileSync(path.join(parentDir, 'package.json'), JSON.stringify({ name: 'actual-package-name', version: '1.0.0' }));
+      
+      // Create nested package
+      const nestedDir = path.join(parentDir, 'node_modules', 'nested');
+      fs.mkdirSync(nestedDir, { recursive: true });
+      fs.writeFileSync(path.join(nestedDir, 'package.json'), JSON.stringify({ name: 'nested', version: '2.0.0' }));
+      
+      const modulePath = path.join(nestedDir, 'index.js');
+      const resolver = new PackageResolver();
+      resolver.setProjectRoot(tempDir);
+      const result = resolver.resolve(modulePath, 'main');
+      // Should use name from package.json
+      expect(result!.dependencyPath).toBe('/actual-package-name@1.0.0');
+    });
+
+    it('handles five levels of nesting', () => {
+      // Create chain: level1 > level2 > level3 > level4 > target
+      const level1Dir = path.join(tempDir, 'node_modules', 'level1');
+      fs.mkdirSync(level1Dir, { recursive: true });
+      fs.writeFileSync(path.join(level1Dir, 'package.json'), JSON.stringify({ name: 'level1', version: '1.0.0' }));
+      
+      const level2Dir = path.join(level1Dir, 'node_modules', 'level2');
+      fs.mkdirSync(level2Dir, { recursive: true });
+      fs.writeFileSync(path.join(level2Dir, 'package.json'), JSON.stringify({ name: 'level2', version: '2.0.0' }));
+      
+      const level3Dir = path.join(level2Dir, 'node_modules', 'level3');
+      fs.mkdirSync(level3Dir, { recursive: true });
+      fs.writeFileSync(path.join(level3Dir, 'package.json'), JSON.stringify({ name: 'level3', version: '3.0.0' }));
+      
+      const level4Dir = path.join(level3Dir, 'node_modules', 'level4');
+      fs.mkdirSync(level4Dir, { recursive: true });
+      fs.writeFileSync(path.join(level4Dir, 'package.json'), JSON.stringify({ name: 'level4', version: '4.0.0' }));
+      
+      const targetDir = path.join(level4Dir, 'node_modules', 'target');
+      fs.mkdirSync(targetDir, { recursive: true });
+      fs.writeFileSync(path.join(targetDir, 'package.json'), JSON.stringify({ name: 'target', version: '5.0.0' }));
+      
+      const modulePath = path.join(targetDir, 'index.js');
+      const resolver = new PackageResolver();
+      resolver.setProjectRoot(tempDir);
+      const result = resolver.resolve(modulePath, 'main');
+      expect(result!.dependencyPath).toBe('/level1@1.0.0/level2@2.0.0/level3@3.0.0/level4@4.0.0');
+    });
+
+    it('returns "/" when package is at project root node_modules', () => {
+      // Package directly in project's node_modules
+      const pkgDir = path.join(tempDir, 'node_modules', 'single-dep');
+      fs.mkdirSync(pkgDir, { recursive: true });
+      fs.writeFileSync(path.join(pkgDir, 'package.json'), JSON.stringify({ name: 'single-dep', version: '1.0.0' }));
+      
+      const modulePath = path.join(pkgDir, 'lib', 'index.js');
+      const resolver = new PackageResolver();
+      resolver.setProjectRoot(tempDir);
+      const result = resolver.resolve(modulePath, 'main');
+      expect(result!.dependencyPath).toBe('/');
+    });
+  });
 });

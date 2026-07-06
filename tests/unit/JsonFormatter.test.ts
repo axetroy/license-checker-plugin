@@ -75,4 +75,84 @@ describe('JsonFormatter', () => {
     const parsed = JSON.parse(result);
     expect(parsed[0].licenseText).toBeUndefined();
   });
+
+  it('includes direct field when present', () => {
+    const items: OutputItem[] = [
+      {
+        package: {
+          name: 'lodash',
+          version: '4.17.21',
+          path: '',
+          packageJsonPath: '',
+          chunks: [],
+          modules: [],
+          direct: true,
+        },
+        license: { license: 'MIT' },
+      },
+    ];
+    const formatter = new JsonFormatter();
+    const result = formatter.generate(items);
+    const parsed = JSON.parse(result);
+    expect(parsed[0].direct).toBe(true);
+  });
+
+  it('includes dependencyPath field when present', () => {
+    const items: OutputItem[] = [
+      {
+        package: {
+          name: 'nested-pkg',
+          version: '1.0.0',
+          path: '',
+          packageJsonPath: '',
+          chunks: [],
+          modules: [],
+          dependencyPath: '/parent@2.0.0',
+        },
+        license: { license: 'MIT' },
+      },
+    ];
+    const formatter = new JsonFormatter();
+    const result = formatter.generate(items);
+    const parsed = JSON.parse(result);
+    expect(parsed[0].dependencyPath).toBe('/parent@2.0.0');
+  });
+
+  it('includes both direct and dependencyPath fields', () => {
+    const items: OutputItem[] = [
+      {
+        package: {
+          name: 'lodash',
+          version: '4.17.21',
+          path: '',
+          packageJsonPath: '',
+          chunks: [],
+          modules: [],
+          direct: true,
+          dependencyPath: '/',
+        },
+        license: { license: 'MIT' },
+      },
+      {
+        package: {
+          name: 'nested',
+          version: '1.0.0',
+          path: '',
+          packageJsonPath: '',
+          chunks: [],
+          modules: [],
+          direct: false,
+          dependencyPath: '/express@4.0.0',
+        },
+        license: { license: 'Apache-2.0' },
+      },
+    ];
+    const formatter = new JsonFormatter();
+    const result = formatter.generate(items);
+    const parsed = JSON.parse(result);
+    expect(parsed[0].direct).toBe(true);
+    expect(parsed[0].dependencyPath).toBe('/');
+    expect(parsed[1].direct).toBe(false);
+    expect(parsed[1].dependencyPath).toBe('/express@4.0.0');
+  });
 });

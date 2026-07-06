@@ -38,4 +38,61 @@ describe('HtmlFormatter', () => {
     expect(result).toContain('&lt;evil&gt;');
     expect(result).toContain('MIT &amp; GPL');
   });
+
+  it('includes Direct column when present', () => {
+    const formatter = new HtmlFormatter();
+    const items: OutputItem[] = [
+      {
+        package: { name: 'lodash', version: '4.17.21', path: '', packageJsonPath: '', chunks: [], modules: [], direct: true },
+        license: { license: 'MIT' },
+      },
+    ];
+    const result = formatter.generate(items);
+    expect(result).toContain('<th>Direct</th>');
+    expect(result).toContain('<td>true</td>');
+  });
+
+  it('includes Dependency Path column when present', () => {
+    const formatter = new HtmlFormatter();
+    const items: OutputItem[] = [
+      {
+        package: { name: 'nested', version: '1.0.0', path: '', packageJsonPath: '', chunks: [], modules: [], dependencyPath: '/express@4.0.0' },
+        license: { license: 'MIT' },
+      },
+    ];
+    const result = formatter.generate(items);
+    expect(result).toContain('<th>Dependency Path</th>');
+    expect(result).toContain('<td><code>/express@4.0.0</code></td>');
+  });
+
+  it('wraps dependency path in code element', () => {
+    const formatter = new HtmlFormatter();
+    const items: OutputItem[] = [
+      {
+        package: { name: 'pkg', version: '1.0.0', path: '', packageJsonPath: '', chunks: [], modules: [], dependencyPath: '/' },
+        license: { license: 'MIT' },
+      },
+    ];
+    const result = formatter.generate(items);
+    expect(result).toContain('<td><code>/</code></td>');
+  });
+
+  it('renders root dependency path as /', () => {
+    const formatter = new HtmlFormatter();
+    const items: OutputItem[] = [
+      {
+        package: { name: 'lodash', version: '4.17.21', path: '', packageJsonPath: '', chunks: [], modules: [], direct: true, dependencyPath: '/' },
+        license: { license: 'MIT' },
+      },
+      {
+        package: { name: 'nested', version: '1.0.0', path: '', packageJsonPath: '', chunks: [], modules: [], direct: false, dependencyPath: '/express@4.0.0' },
+        license: { license: 'Apache-2.0' },
+      },
+    ];
+    const result = formatter.generate(items);
+    expect(result).toContain('<th>Direct</th>');
+    expect(result).toContain('<th>Dependency Path</th>');
+    expect(result).toContain('<td>true</td>');
+    expect(result).toContain('<td>false</td>');
+  });
 });

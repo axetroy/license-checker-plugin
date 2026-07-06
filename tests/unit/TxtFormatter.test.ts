@@ -95,4 +95,66 @@ describe('TxtFormatter', () => {
     expect(result).toContain('Author       : Example <example@example.com>');
     expect(result).toMatchSnapshot();
   });
+
+  it('includes Direct field when present', () => {
+    const items: OutputItem[] = [
+      {
+        package: {
+          name: 'lodash',
+          version: '4.17.21',
+          path: '',
+          packageJsonPath: '',
+          chunks: [],
+          modules: [],
+          direct: true,
+        },
+        license: { license: 'MIT' },
+      },
+    ];
+    const formatter = new TxtFormatter({ includeLicenseText: false });
+    const result = formatter.generate(items);
+    expect(result).toContain('Direct       : true');
+  });
+
+  it('includes Dependency Path field when present', () => {
+    const items: OutputItem[] = [
+      {
+        package: {
+          name: 'nested-pkg',
+          version: '1.0.0',
+          path: '',
+          packageJsonPath: '',
+          chunks: [],
+          modules: [],
+          dependencyPath: '/express@4.0.0',
+        },
+        license: { license: 'MIT' },
+      },
+    ];
+    const formatter = new TxtFormatter({ includeLicenseText: false });
+    const result = formatter.generate(items);
+    expect(result).toContain('Dependency Path : /express@4.0.0');
+  });
+
+  it('shows / for direct dependencies dependency path', () => {
+    const items: OutputItem[] = [
+      {
+        package: {
+          name: 'lodash',
+          version: '4.17.21',
+          path: '',
+          packageJsonPath: '',
+          chunks: [],
+          modules: [],
+          direct: true,
+          dependencyPath: '/',
+        },
+        license: { license: 'MIT' },
+      },
+    ];
+    const formatter = new TxtFormatter({ includeLicenseText: false });
+    const result = formatter.generate(items);
+    expect(result).toContain('Direct       : true');
+    expect(result).toContain('Dependency Path : /');
+  });
 });
