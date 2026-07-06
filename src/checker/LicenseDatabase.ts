@@ -56,4 +56,8 @@ export class LicenseDatabase {
   getLicense(packageName: string, packageVersion: string): LicenseInfo {
     return this.cache.get(`${packageName}@${packageVersion}`) || { license: 'UNKNOWN' };
   }
+
+  getAllLicenses(): Map<string, LicenseInfo> {
+    return this.cache.getAll();
+  }
 }

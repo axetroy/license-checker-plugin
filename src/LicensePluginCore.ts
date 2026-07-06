@@ -29,6 +29,14 @@ export interface LicensePluginOptions {
   /** Include the author/publisher in each entry. */
   includeAuthor?: boolean;
   /**
+   * Include additional packages that are not bundled but should appear in
+   * the license output (e.g., Electron for Electron apps where the runtime
+   * is not bundled but needs to be documented).
+   * Can be a list of package names, or a predicate function
+   * `(packageName: string) => boolean`.
+   */
+  includePackages?: (string | ((name: string) => boolean))[];
+  /**
    * Exclude specific packages from the output.
    * Can be a list of package names, or a predicate function
    * `(packageName: string) => boolean`.
@@ -97,6 +105,7 @@ export class LicensePluginCore {
       includeRepository: options.includeRepository !== false,
       includeHomepage: options.includeHomepage !== false,
       includeAuthor: options.includeAuthor !== false,
+      includePackages: options.includePackages || [],
       excludePackages: options.excludePackages || [],
       onlyAllow: options.onlyAllow || [],
       failOn: options.failOn || [],
@@ -128,6 +137,19 @@ export class LicensePluginCore {
     context: LicensePluginContext
   ): Promise<{ items: OutputItem[]; errors: string[] }> {
     const entries = this.resolveLicenseEntries(packages);
+    
+    // Add packages from includePackages that are not already in entries
+    if (this.options.includePackages.length > 0) {
+      const includedPackages = this.resolveIncludedPackages();
+      for (const included of includedPackages) {
+        // Skip if already included via bundled packages
+        if (entries.some((e) => e.info.name === included.info.name && e.info.version === included.info.version)) {
+          continue;
+        }
+        entries.push(included);
+      }
+    }
+    
     const errors = this.checkCompliance(entries);
 
     let items: OutputItem[];
@@ -176,6 +198,69 @@ export class LicensePluginCore {
         licenseInfo: this.filterLicenseFields(licenseInfo),
       });
     }
+    return entries;
+  }
+
+  private resolveIncludedPackages(): Array<{ info: PackageInfo; licenseInfo: LicenseInfo }> {
+    const entries: Array<{ info: PackageInfo; licenseInfo: LicenseInfo }> = [];
+    const seen = new Set<string>();
+    
+    for (const pkgPattern of this.options.includePackages) {
+      // Get all packages from the database that match the pattern
+      const allLicenses = this.db.getAllLicenses();
+      for (const [key, licenseInfo] of allLicenses) {
+        // Parse package name and version from key (format: "name@version" or "@scope/name@version")
+        let name: string;
+        let version: string;
+        
+        if (key.startsWith('@')) {
+          // Scoped package: @scope/name@version
+          const parts = key.split('@');
+          if (parts.length < 3) continue;
+          name = `${parts[0]}@${parts[1]}`;
+          version = parts[2];
+        } else {
+          // Regular package: name@version
+          const atIndex = key.indexOf('@');
+          if (atIndex === -1) continue;
+          name = key.substring(0, atIndex);
+          version = key.substring(atIndex + 1);
+        }
+        
+        // Check if this package matches the pattern
+        const isWildcard = pkgPattern === '*';
+        const isFunction = typeof pkgPattern === 'function';
+        const isMatch = isWildcard || (isFunction && pkgPattern(name)) || (!isFunction && name === pkgPattern);
+        
+        if (!isMatch) continue;
+        
+        // Skip if this package is already added
+        if (seen.has(name)) continue;
+        seen.add(name);
+        
+        // Skip if this package is in excludePackages
+        if (this.options.excludePackages.some((e) => (typeof e === 'function' ? e(name) : e === name))) {
+          continue;
+        }
+        
+        // Build PackageInfo for this package
+        const info: PackageInfo = {
+          name,
+          version,
+          path: '',
+          packageJsonPath: '',
+          chunks: [],
+          modules: [],
+          license: licenseInfo.license,
+        };
+        
+        entries.push({
+          info,
+          licenseInfo: this.filterLicenseFields(licenseInfo),
+        });
+      }
+    }
+    
     return entries;
   }
 

@@ -478,3 +478,128 @@ describe('LicensePluginCore — compound license strings', () => {
     });
   });
 });
+
+describe('LicensePluginCore — includePackages', () => {
+  it('includes a package specified in includePackages', async () => {
+    MockLicenseDatabase.prototype.getLicense.mockReturnValue({
+      license: 'MIT',
+    });
+    MockLicenseDatabase.prototype.getAllLicenses.mockReturnValue(
+      new Map([
+        ['electron@28.0.0', { license: 'MIT' }],
+      ])
+    );
+    const core = new LicensePluginCore({
+      includePackages: ['electron'],
+      workspaceRoot: '/test',
+    });
+    await core.initialize('/test', mockContext);
+
+    const packages = new Map<string, PackageInfo>();
+    // No bundled packages, only includePackages should be used
+
+    const { items, errors } = await core.generateLicenseItems(packages, mockContext);
+    expect(errors).toEqual([]);
+    expect(items).toHaveLength(1);
+    expect(items[0].package.name).toBe('electron');
+    expect(items[0].package.version).toBe('28.0.0');
+    expect(items[0].license.license).toBe('MIT');
+  });
+
+  it('includes packages matching a predicate function in includePackages', async () => {
+    MockLicenseDatabase.prototype.getLicense.mockReturnValue({
+      license: 'MIT',
+    });
+    MockLicenseDatabase.prototype.getAllLicenses.mockReturnValue(
+      new Map([
+        ['@electron/test@1.0.0', { license: 'MIT' }],
+        ['lodash@4.17.21', { license: 'MIT' }],
+        ['react@18.0.0', { license: 'MIT' }],
+      ])
+    );
+    const core = new LicensePluginCore({
+      includePackages: [(name: string) => name.startsWith('@electron/')],
+      workspaceRoot: '/test',
+    });
+    await core.initialize('/test', mockContext);
+
+    const packages = new Map<string, PackageInfo>();
+
+    const { items, errors } = await core.generateLicenseItems(packages, mockContext);
+    expect(errors).toEqual([]);
+    expect(items).toHaveLength(1);
+    expect(items[0].package.name).toBe('@electron/test');
+    expect(items[0].package.version).toBe('1.0.0');
+  });
+
+  it('includes all packages with wildcard includePackages', async () => {
+    MockLicenseDatabase.prototype.getLicense.mockReturnValue({
+      license: 'MIT',
+    });
+    MockLicenseDatabase.prototype.getAllLicenses.mockReturnValue(
+      new Map([
+        ['electron@28.0.0', { license: 'MIT' }],
+        ['lodash@4.17.21', { license: 'MIT' }],
+      ])
+    );
+    const core = new LicensePluginCore({
+      includePackages: ['*'],
+      workspaceRoot: '/test',
+    });
+    await core.initialize('/test', mockContext);
+
+    const packages = new Map<string, PackageInfo>();
+
+    const { items, errors } = await core.generateLicenseItems(packages, mockContext);
+    expect(errors).toEqual([]);
+    expect(items).toHaveLength(2);
+  });
+
+  it('does not duplicate packages already in bundled packages', async () => {
+    MockLicenseDatabase.prototype.getLicense.mockReturnValue({
+      license: 'MIT',
+    });
+    MockLicenseDatabase.prototype.getAllLicenses.mockReturnValue(
+      new Map([
+        ['electron@28.0.0', { license: 'MIT' }],
+      ])
+    );
+    const core = new LicensePluginCore({
+      includePackages: ['electron'],
+      workspaceRoot: '/test',
+    });
+    await core.initialize('/test', mockContext);
+
+    const packages = new Map<string, PackageInfo>();
+    packages.set('electron@28.0.0', makePackage('electron', '28.0.0'));
+
+    const { items, errors } = await core.generateLicenseItems(packages, mockContext);
+    expect(errors).toEqual([]);
+    expect(items).toHaveLength(1);
+  });
+
+  it('respects excludePackages when resolving includePackages', async () => {
+    MockLicenseDatabase.prototype.getLicense.mockReturnValue({
+      license: 'MIT',
+    });
+    MockLicenseDatabase.prototype.getAllLicenses.mockReturnValue(
+      new Map([
+        ['electron@28.0.0', { license: 'MIT' }],
+        ['lodash@4.17.21', { license: 'MIT' }],
+      ])
+    );
+    const core = new LicensePluginCore({
+      includePackages: ['*'],
+      excludePackages: ['lodash'],
+      workspaceRoot: '/test',
+    });
+    await core.initialize('/test', mockContext);
+
+    const packages = new Map<string, PackageInfo>();
+
+    const { items, errors } = await core.generateLicenseItems(packages, mockContext);
+    expect(errors).toEqual([]);
+    expect(items).toHaveLength(1);
+    expect(items[0].package.name).toBe('electron');
+  });
+});
