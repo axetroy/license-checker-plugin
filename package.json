@@ -1,6 +1,6 @@
 {
   "name": "license-checker-plugin",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "A bundler-agnostic plugin to generate third-party license notices for bundled packages. Supports webpack 5, Rspack, and Vite.",
   "author": "Axetroy <axetroy.dev@gmail.com>",
   "repository": {
