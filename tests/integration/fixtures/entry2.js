@@ -1,3 +1,3 @@
-const { RawSource } = require('webpack-sources');
+import { RawSource } from 'webpack-sources';
 
-module.exports = new RawSource('hello');
+export default new RawSource('hello');

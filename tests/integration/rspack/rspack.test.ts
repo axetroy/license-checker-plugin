@@ -11,20 +11,17 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 // Import Rspack types without importing webpack so that the test itself
 // demonstrates the bundler-agnostic pattern.
 import type { Configuration, Stats } from '@rspack/core';
+import { rspack } from '@rspack/core';
 import { LicenseWebpackPlugin } from '../../../dist/LicenseWebpackPlugin';
 
-/** Maximum time (ms) to allow a single Rspack build to complete in CI. */
-const RSPACK_BUILD_TIMEOUT = 60_000;
-
-jest.setTimeout(RSPACK_BUILD_TIMEOUT);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function runRspack(config: Configuration): Promise<Stats> {
-  // Require at runtime to avoid a hard compile-time dependency on webpack.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { rspack } = require('@rspack/core') as typeof import('@rspack/core');
   return new Promise((resolve, reject) => {
     const compiler = rspack(config);
     compiler.run((err, stats) => {

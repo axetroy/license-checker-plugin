@@ -1,3 +1,3 @@
-const isArray = require('core-util-is');
+import isArray from 'core-util-is';
 
-module.exports = isArray;
+export default isArray;

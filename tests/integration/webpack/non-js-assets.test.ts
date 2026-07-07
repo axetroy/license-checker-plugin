@@ -1,9 +1,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import webpack from 'webpack';
 import { LicenseWebpackPlugin } from '../../../dist/LicenseWebpackPlugin';
 
-jest.setTimeout(60000);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function runWebpack(config: webpack.Configuration): Promise<webpack.Stats> {
   return new Promise((resolve, reject) => {

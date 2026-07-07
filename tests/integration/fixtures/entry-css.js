@@ -1,3 +1,3 @@
 // Entry file that imports CSS
-require('./assets/style.css');
-require('lodash');
+import './assets/style.css';
+import 'lodash';

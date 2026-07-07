@@ -1,3 +1,3 @@
-const _ = require('lodash');
+import _ from 'lodash';
 
-module.exports = _.identity;
+export default _.identity;

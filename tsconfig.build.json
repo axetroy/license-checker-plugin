@@ -1,8 +1,9 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "module": "ES2020",
+    "moduleResolution": "bundler",
+    "target": "ES2020",
     "sourceMap": false,
     "declarationMap": false,
     "outDir": "./dist",
