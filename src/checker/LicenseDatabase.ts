@@ -1,6 +1,6 @@
-import { builtInLicenseChecker, normalizeLicense } from './BuiltInLicenseChecker';
-import { LicenseInfo } from '../model/LicenseInfo';
-import { LicenseCache } from './LicenseCache';
+import { builtInLicenseChecker, normalizeLicense } from './BuiltInLicenseChecker.js';
+import { LicenseInfo } from '../model/LicenseInfo.js';
+import { LicenseCache } from './LicenseCache.js';
 
 export class LicenseDatabase {
   private readonly cache = new LicenseCache();

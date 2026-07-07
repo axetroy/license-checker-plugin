@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { PackageInfo } from '../model/PackageInfo';
-import { normalizeRepositoryUrl, parseAuthor } from '../checker/BuiltInLicenseChecker';
+import { PackageInfo } from '../model/PackageInfo.js';
+import { normalizeRepositoryUrl, parseAuthor } from '../checker/BuiltInLicenseChecker.js';
 
 interface ProjectPackageJson {
   dependencies?: Record<string, string>;

@@ -1,5 +1,5 @@
-import { MarkdownFormatter } from '../../src/formatter/MarkdownFormatter';
-import { OutputItem } from '../../src/model/LicenseInfo';
+import { MarkdownFormatter } from '../../src/formatter/MarkdownFormatter.js';
+import { OutputItem } from '../../src/model/LicenseInfo.js';
 
 const sampleItems: OutputItem[] = [
   {

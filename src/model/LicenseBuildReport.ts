@@ -1,4 +1,4 @@
-import { OutputItem } from './LicenseInfo';
+import { OutputItem } from './LicenseInfo.js';
 
 export interface LicenseBuildReport {
   items: OutputItem[];

@@ -1,8 +1,8 @@
 import { describe, it, expect } from '@jest/globals';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { LicensePluginCore, type LicensePluginContext } from '../../src/LicensePluginCore';
-import { type PackageInfo } from '../../src/model/PackageInfo';
+import { LicensePluginCore, type LicensePluginContext } from '../../src/LicensePluginCore.js';
+import { type PackageInfo } from '../../src/model/PackageInfo.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

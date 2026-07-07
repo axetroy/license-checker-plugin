@@ -1,4 +1,4 @@
-import { hashString } from '../utils/hash';
+import { hashString } from '../utils/hash.js';
 
 describe('hashString', () => {
   it('returns md5 hex for a string', () => {

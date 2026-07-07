@@ -1,5 +1,5 @@
-import { JsonFormatter } from '../../src/formatter/JsonFormatter';
-import { OutputItem } from '../../src/model/LicenseInfo';
+import { JsonFormatter } from '../../src/formatter/JsonFormatter.js';
+import { OutputItem } from '../../src/model/LicenseInfo.js';
 
 const sampleItems: OutputItem[] = [
   {

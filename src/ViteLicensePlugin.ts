@@ -1,7 +1,7 @@
-import { LicensePluginCore } from './LicensePluginCore';
-import type { LicensePluginOptions } from './LicensePluginCore';
-import { PackageResolver } from './scanner/PackageResolver';
-import type { PackageInfo } from './model/PackageInfo';
+import { LicensePluginCore } from './LicensePluginCore.js';
+import type { LicensePluginOptions } from './LicensePluginCore.js';
+import { PackageResolver } from './scanner/PackageResolver.js';
+import type { PackageInfo } from './model/PackageInfo.js';
 
 const PLUGIN_NAME = 'vite-license-plugin';
 

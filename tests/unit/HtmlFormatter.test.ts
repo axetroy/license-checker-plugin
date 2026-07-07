@@ -1,5 +1,5 @@
-import { HtmlFormatter } from '../../src/formatter/HtmlFormatter';
-import { OutputItem } from '../../src/model/LicenseInfo';
+import { HtmlFormatter } from '../../src/formatter/HtmlFormatter.js';
+import { OutputItem } from '../../src/model/LicenseInfo.js';
 
 const sampleItems: OutputItem[] = [
   {

@@ -1,4 +1,4 @@
-import { LicenseInfo } from '../model/LicenseInfo';
+import { LicenseInfo } from '../model/LicenseInfo.js';
 
 export class LicenseCache {
   private readonly cache = new Map<string, LicenseInfo>();

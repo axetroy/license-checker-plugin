@@ -14,8 +14,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import webpack from 'webpack';
-import { LicenseWebpackPlugin } from '../../../dist/LicenseWebpackPlugin';
-import { DefaultRecorder } from '../../../dist/Recorder';
+import { LicenseWebpackPlugin } from '../../../dist/LicenseWebpackPlugin.js';
+import { DefaultRecorder } from '../../../dist/Recorder.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

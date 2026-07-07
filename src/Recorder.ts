@@ -1,4 +1,4 @@
-import { LicenseBuildReport } from './model/LicenseBuildReport';
+import { LicenseBuildReport } from './model/LicenseBuildReport.js';
 
 export interface Recorder {
   record(report: LicenseBuildReport): void;

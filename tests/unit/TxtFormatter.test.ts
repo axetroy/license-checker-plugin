@@ -1,5 +1,5 @@
-import { TxtFormatter } from '../../src/formatter/TxtFormatter';
-import { OutputItem } from '../../src/model/LicenseInfo';
+import { TxtFormatter } from '../../src/formatter/TxtFormatter.js';
+import { OutputItem } from '../../src/model/LicenseInfo.js';
 
 const sampleItems: OutputItem[] = [
   {

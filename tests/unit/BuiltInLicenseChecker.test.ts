@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { builtInLicenseChecker } from '../../src/checker/BuiltInLicenseChecker';
+import { builtInLicenseChecker } from '../../src/checker/BuiltInLicenseChecker.js';
 
 describe('BuiltInLicenseChecker', () => {
   let tempDir: string;

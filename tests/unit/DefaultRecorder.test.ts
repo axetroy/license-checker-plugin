@@ -1,5 +1,5 @@
-import { DefaultRecorder } from '../../src/Recorder';
-import { LicenseBuildReport } from '../../src/model/LicenseBuildReport';
+import { DefaultRecorder } from '../../src/Recorder.js';
+import { LicenseBuildReport } from '../../src/model/LicenseBuildReport.js';
 
 function makeReport(name: string): LicenseBuildReport {
   return {

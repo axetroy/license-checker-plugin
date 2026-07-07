@@ -1,7 +1,7 @@
 import type { Compilation, Compiler, WebpackPluginInstance } from 'webpack';
-import { LicensePluginCore } from './LicensePluginCore';
-import type { LicensePluginOptions, OutputFormat } from './LicensePluginCore';
-import { PackageScanner } from './scanner/PackageScanner';
+import { LicensePluginCore } from './LicensePluginCore.js';
+import type { LicensePluginOptions, OutputFormat } from './LicensePluginCore.js';
+import { PackageScanner } from './scanner/PackageScanner.js';
 
 export type { LicensePluginOptions, OutputFormat };
 /** @deprecated Use `LicensePluginOptions` instead. */

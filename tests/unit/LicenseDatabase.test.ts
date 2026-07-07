@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { LicenseDatabase } from '../../src/checker/LicenseDatabase';
+import { LicenseDatabase } from '../../src/checker/LicenseDatabase.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

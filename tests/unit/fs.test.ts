@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { readFileIfExists, readJsonFile, findFileInDir } from '../utils/fs';
+import { readFileIfExists, readJsonFile, findFileInDir } from '../utils/fs.js';
 
 let tempDir: string;
 

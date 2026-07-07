@@ -1,4 +1,4 @@
-import { PackageInfo } from './PackageInfo';
+import { PackageInfo } from './PackageInfo.js';
 
 /** License metadata for a single package. */
 export interface LicenseInfo {

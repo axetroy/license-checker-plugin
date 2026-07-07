@@ -1,5 +1,5 @@
-import { OutputItem } from '../model/LicenseInfo';
-import { Formatter } from './Formatter';
+import { OutputItem } from '../model/LicenseInfo.js';
+import { Formatter } from './Formatter.js';
 
 export interface TxtFormatterOptions {
   includeLicenseText?: boolean;

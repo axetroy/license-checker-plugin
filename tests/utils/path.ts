@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { readJsonFile } from './fs';
+import { readJsonFile } from './fs.js';
 
 export function findPackageRoot(modulePath: string): string | null {
   let dir = path.dirname(modulePath);

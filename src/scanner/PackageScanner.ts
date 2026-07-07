@@ -1,6 +1,6 @@
 import type { Chunk, Compilation, Module } from 'webpack';
-import { PackageInfo } from '../model/PackageInfo';
-import { PackageResolver } from './PackageResolver';
+import { PackageInfo } from '../model/PackageInfo.js';
+import { PackageResolver } from './PackageResolver.js';
 
 interface NormalModuleShape {
   resource?: string;

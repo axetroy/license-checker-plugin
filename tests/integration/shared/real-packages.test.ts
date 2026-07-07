@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { builtInLicenseChecker } from '../../../src/checker/BuiltInLicenseChecker';
+import { builtInLicenseChecker } from '../../../src/checker/BuiltInLicenseChecker.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

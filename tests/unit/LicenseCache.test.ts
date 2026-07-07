@@ -1,4 +1,4 @@
-import { LicenseCache } from '../../src/checker/LicenseCache';
+import { LicenseCache } from '../../src/checker/LicenseCache.js';
 
 describe('LicenseCache', () => {
   it('stores and retrieves license info', () => {

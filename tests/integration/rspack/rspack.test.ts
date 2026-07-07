@@ -16,7 +16,7 @@ import { fileURLToPath } from 'url';
 // demonstrates the bundler-agnostic pattern.
 import type { Configuration, Stats } from '@rspack/core';
 import { rspack } from '@rspack/core';
-import { LicenseWebpackPlugin } from '../../../dist/LicenseWebpackPlugin';
+import { LicenseWebpackPlugin } from '../../../dist/LicenseWebpackPlugin.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

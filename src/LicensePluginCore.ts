@@ -1,17 +1,17 @@
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import spdxExpressionParse from 'spdx-expression-parse';
-import { LicenseDatabase } from './checker/LicenseDatabase';
-import { normalizeLicense } from './checker/BuiltInLicenseChecker';
-import { Formatter } from './formatter/Formatter';
-import { HtmlFormatter } from './formatter/HtmlFormatter';
-import { JsonFormatter } from './formatter/JsonFormatter';
-import { MarkdownFormatter } from './formatter/MarkdownFormatter';
-import { TxtFormatter } from './formatter/TxtFormatter';
-import { LicenseInfo, OutputItem } from './model/LicenseInfo';
-import { LicenseBuildReport } from './model/LicenseBuildReport';
-import { PackageInfo } from './model/PackageInfo';
-import { Recorder } from './Recorder';
+import { LicenseDatabase } from './checker/LicenseDatabase.js';
+import { normalizeLicense } from './checker/BuiltInLicenseChecker.js';
+import { Formatter } from './formatter/Formatter.js';
+import { HtmlFormatter } from './formatter/HtmlFormatter.js';
+import { JsonFormatter } from './formatter/JsonFormatter.js';
+import { MarkdownFormatter } from './formatter/MarkdownFormatter.js';
+import { TxtFormatter } from './formatter/TxtFormatter.js';
+import { LicenseInfo, OutputItem } from './model/LicenseInfo.js';
+import { LicenseBuildReport } from './model/LicenseBuildReport.js';
+import { PackageInfo } from './model/PackageInfo.js';
+import { Recorder } from './Recorder.js';
 
 export type OutputFormat = 'txt' | 'json' | 'markdown' | 'html';
 
