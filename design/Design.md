@@ -313,7 +313,7 @@ export interface Formatter {
 - 仅当 onlyAllow 或 failOn 触发时输出 Error
 - 不触发时正常生成 License 文件
 
-详细设计见 [`design/License Compliance Engine.md`](./design/License%20Compliance%20Engine.md)。
+详细设计见 [`License Compliance Engine.md`](./License%20Compliance%20Engine.md)。
 
 ---
 
