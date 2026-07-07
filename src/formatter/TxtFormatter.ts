@@ -23,9 +23,6 @@ export class TxtFormatter implements Formatter {
       if (item.package.direct !== undefined) {
         lines.push(this.formatField('Direct', item.package.direct ? 'true' : 'false', labelWidth));
       }
-      if (item.package.dependencyPath !== undefined) {
-        lines.push(this.formatField('Dependency Path', item.package.dependencyPath, labelWidth));
-      }
       if (item.package.repository) {
         lines.push(this.formatField('Repository', item.package.repository, labelWidth));
       }
