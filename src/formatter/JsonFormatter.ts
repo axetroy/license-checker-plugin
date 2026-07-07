@@ -14,7 +14,6 @@ export class JsonFormatter implements Formatter {
       if (item.package.author) entry.author = item.package.author;
       if (item.license.licenseText) entry.licenseText = item.license.licenseText;
       if (item.package.direct !== undefined) entry.direct = item.package.direct;
-      if (item.package.dependencyPath !== undefined) entry.dependencyPath = item.package.dependencyPath;
       return entry;
     });
 

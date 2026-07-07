@@ -19,6 +19,10 @@ export class PackageScanner {
     this.resolver = new PackageResolver();
   }
 
+  setProjectRoot(projectRoot: string): void {
+    this.resolver.setProjectRoot(projectRoot);
+  }
+
   scan(compilation: Compilation): Map<string, PackageInfo> {
     const packages = new Map<string, PackageInfo>();
 

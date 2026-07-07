@@ -65,6 +65,7 @@ export class LicenseWebpackPlugin implements WebpackPluginInstance {
     }
 
     const scanner = new PackageScanner();
+    scanner.setProjectRoot(startPath);
     const packages = scanner.scan(compilation);
 
     const { items, errors } = await this.core.generateLicenseItems(packages, context);

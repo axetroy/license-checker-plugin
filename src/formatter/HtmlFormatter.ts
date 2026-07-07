@@ -4,12 +4,10 @@ import { Formatter } from './Formatter';
 export class HtmlFormatter implements Formatter {
   generate(items: OutputItem[]): string {
     const hasDirect = items.some((item) => item.package.direct !== undefined);
-    const hasDependencyPath = items.some((item) => item.package.dependencyPath !== undefined);
     const hasLicenseText = items.some((item) => item.license.licenseText);
 
     const headers = ['Package', 'Version', 'License'];
     if (hasDirect) headers.push('Direct');
-    if (hasDependencyPath) headers.push('Dependency Path');
     if (hasLicenseText) headers.push('License Text');
 
     const headerRow = '<tr>' + headers.map((h) => `<th>${h}</th>`).join('') + '</tr>';
@@ -28,10 +26,6 @@ export class HtmlFormatter implements Formatter {
 
         if (hasDirect) {
           cells.push(`<td>${item.package.direct ? 'true' : 'false'}</td>`);
-        }
-        if (hasDependencyPath) {
-          const depPath = this.escape(item.package.dependencyPath || '');
-          cells.push(`<td><code>${depPath}</code></td>`);
         }
         if (hasLicenseText) {
           const licenseText = item.license.licenseText

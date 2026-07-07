@@ -179,35 +179,4 @@ describe('MarkdownFormatter', () => {
     expect(result).toContain('| Package | Version | License | Direct |');
     expect(result).toContain('| lodash | 4.17.21 | MIT | true |');
   });
-
-  it('includes Dependency Path column when present', () => {
-    const items: OutputItem[] = [
-      {
-        package: { name: 'nested', version: '1.0.0', path: '', packageJsonPath: '', chunks: [], modules: [], dependencyPath: '/express@4.0.0' },
-        license: { license: 'MIT' },
-      },
-    ];
-    const formatter = new MarkdownFormatter();
-    const result = formatter.generate(items);
-    expect(result).toContain('| Package | Version | License | Dependency Path |');
-    expect(result).toContain('| nested | 1.0.0 | MIT | /express@4.0.0 |');
-  });
-
-  it('includes both Direct and Dependency Path columns when both present', () => {
-    const items: OutputItem[] = [
-      {
-        package: { name: 'lodash', version: '4.17.21', path: '', packageJsonPath: '', chunks: [], modules: [], direct: true, dependencyPath: '/' },
-        license: { license: 'MIT' },
-      },
-      {
-        package: { name: 'nested', version: '1.0.0', path: '', packageJsonPath: '', chunks: [], modules: [], direct: false, dependencyPath: '/express@4.0.0' },
-        license: { license: 'Apache-2.0' },
-      },
-    ];
-    const formatter = new MarkdownFormatter();
-    const result = formatter.generate(items);
-    expect(result).toContain('| Package | Version | License | Direct | Dependency Path |');
-    expect(result).toContain('| lodash | 4.17.21 | MIT | true | / |');
-    expect(result).toContain('| nested | 1.0.0 | Apache-2.0 | false | /express@4.0.0 |');
-  });
 });
