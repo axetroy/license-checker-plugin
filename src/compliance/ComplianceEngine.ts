@@ -47,13 +47,14 @@ function parseSpdxIdentifiers(license: string): ParsedIds | null {
 }
 
 function evaluateSingle(id: string, policy: ResolvedPolicy): ComplianceResult {
-  if (policy.deny.includes(id)) {
+  const idLower = id.toLowerCase();
+  if (policy.denyLower.has(idLower)) {
     return { status: 'FAIL', reasons: [`License "${id}" is denied by policy`] };
   }
-  if (policy.allow.includes(id)) {
+  if (policy.allowLower.has(idLower)) {
     return { status: 'PASS', reasons: [] };
   }
-  if (policy.review.includes(id)) {
+  if (policy.reviewLower.has(idLower)) {
     return { status: 'REVIEW', reasons: [`License "${id}" requires review`] };
   }
   // Not in any list — depends on preset

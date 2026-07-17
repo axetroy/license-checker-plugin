@@ -234,22 +234,12 @@ export class LicensePluginCore {
       const allLicenses = this.db.getAllLicenses();
       for (const [key, licenseInfo] of allLicenses) {
         // Parse package name and version from key (format: "name@version" or "@scope/name@version")
-        let name: string;
-        let version: string;
+        // Version is always after the last '@', name is everything before it
+        const lastAtIndex = key.lastIndexOf('@');
+        if (lastAtIndex === -1) continue;
         
-        if (key.startsWith('@')) {
-          // Scoped package: @scope/name@version
-          const parts = key.split('@');
-          if (parts.length < 3) continue;
-          name = `${parts[0]}@${parts[1]}`;
-          version = parts[2];
-        } else {
-          // Regular package: name@version
-          const atIndex = key.indexOf('@');
-          if (atIndex === -1) continue;
-          name = key.substring(0, atIndex);
-          version = key.substring(atIndex + 1);
-        }
+        const name = key.substring(0, lastAtIndex);
+        const version = key.substring(lastAtIndex + 1);
         
         // Check if this package matches the pattern
         const isWildcard = pkgPattern === '*';
