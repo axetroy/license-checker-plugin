@@ -67,9 +67,7 @@ function evaluateSingle(id: string, policy: ResolvedPolicy): ComplianceResult {
   return { status: 'REVIEW', reasons: [`License "${id}" is not explicitly allowed`] };
 }
 
-export function evaluateLicense(license: string, policy: Policy): ComplianceResult {
-  const resolved = resolvePolicy(policy);
-
+function evaluateLicenseResolved(license: string, resolved: ResolvedPolicy): ComplianceResult {
   if (resolved.allow.length === 0 && resolved.deny.length === 0 && resolved.review.length === 0) {
     return { status: 'PASS', reasons: [] };
   }
@@ -88,6 +86,11 @@ export function evaluateLicense(license: string, policy: Policy): ComplianceResu
   const allReasons = results.flatMap((r) => r.reasons);
 
   return { status: finalStatus, reasons: allReasons };
+}
+
+export function evaluateLicense(license: string, policy: Policy): ComplianceResult {
+  const resolved = resolvePolicy(policy);
+  return evaluateLicenseResolved(license, resolved);
 }
 
 export function evaluateUnknownLicense(severity: LicenseSeverity): ComplianceResult {
@@ -118,6 +121,8 @@ export function buildComplianceReport(
   unknownSeverity: LicenseSeverity,
   missingSeverity: LicenseSeverity,
 ): ComplianceReport {
+  const resolved = resolvePolicy(policy);
+  
   const report: ComplianceReport = {
     overall: 'PASS',
     packages: new Map(),
@@ -133,7 +138,7 @@ export function buildComplianceReport(
     } else if (!entry.license || entry.license.trim() === '') {
       result = evaluateMissingLicense(missingSeverity);
     } else {
-      result = evaluateLicense(entry.license, policy);
+      result = evaluateLicenseResolved(entry.license, resolved);
     }
 
     report.packages.set(entry.packageName, result);
