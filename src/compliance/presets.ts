@@ -93,22 +93,32 @@ const presetDefinitions: Record<Preset, Policy> = {
   },
 };
 
-export type ResolvedPolicy = Required<Omit<Policy, 'preset'>> & { preset: Preset | undefined };
+export type ResolvedPolicy = Required<Omit<Policy, 'preset'>> & {
+  preset: Preset | undefined;
+  allowLower: Set<string>;
+  reviewLower: Set<string>;
+  denyLower: Set<string>;
+};
+
+function toLowerSet(arr: string[]): Set<string> {
+  return new Set(arr.map((s) => s.toLowerCase()));
+}
 
 export function resolvePolicy(policy: Policy): ResolvedPolicy {
   const def = policy.preset ? presetDefinitions[policy.preset] : { allow: [] as string[], review: [] as string[], deny: [] as string[] };
-  const base: ResolvedPolicy = {
+  const allow = policy.allow ?? def.allow ?? [];
+  const review = policy.review ?? def.review ?? [];
+  const deny = policy.deny ?? def.deny ?? [];
+
+  return {
     preset: policy.preset || undefined,
-    allow: def.allow || [],
-    review: def.review || [],
-    deny: def.deny || [],
+    allow,
+    review,
+    deny,
+    allowLower: toLowerSet(allow),
+    reviewLower: toLowerSet(review),
+    denyLower: toLowerSet(deny),
   };
-
-  if (policy.allow) base.allow = policy.allow;
-  if (policy.review) base.review = policy.review;
-  if (policy.deny) base.deny = policy.deny;
-
-  return base;
 }
 
 export function getDefaultPolicy(): Policy {
