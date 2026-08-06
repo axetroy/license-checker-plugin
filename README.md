@@ -28,16 +28,16 @@ For Vite projects, ensure `vite` is installed (peer dependency).
 ### webpack / Rspack
 
 ```js
-const { LicenseWebpackPlugin } = require('license-checker-plugin');
+const { LicenseWebpackPlugin } = require("license-checker-plugin");
 
 module.exports = {
-  mode: 'production',
+  mode: "production",
   plugins: [
     new LicenseWebpackPlugin({
-      filename: 'third-party-licenses.txt',
-      format: 'txt',
+      filename: "third-party-licenses.txt",
+      format: "txt",
       includeLicenseText: true,
-      policy: { preset: 'commercial' },
+      policy: { preset: "commercial" },
     }),
   ],
 };
@@ -47,14 +47,14 @@ module.exports = {
 
 ```ts
 // vite.config.ts
-import { defineConfig } from 'vite';
-import { viteLicensePlugin } from 'license-checker-plugin';
+import { defineConfig } from "vite";
+import { viteLicensePlugin } from "license-checker-plugin";
 
 export default defineConfig({
   plugins: [
     viteLicensePlugin({
-      filename: 'third-party-licenses.json',
-      format: 'json',
+      filename: "third-party-licenses.json",
+      format: "json",
       includeLicenseText: true,
     }),
   ],
@@ -63,23 +63,23 @@ export default defineConfig({
 
 ## Options
 
-| Option | Type | Default | Description |
-|---|---|---|---|---|
-| `filename` | `string` | `licenses.txt` | Output asset name |
-| `format` | `'txt' \| 'json' \| 'markdown' \| 'html'` | `txt` | Output format |
-| `includeLicenseText` | `boolean` | `true` | Include license text when supported |
-| `includeRepository` | `boolean` | `true` | Include repository URLs |
-| `includeHomepage` | `boolean` | `true` | Include homepage URLs |
-| `includeAuthor` | `boolean` | `true` | Include author/publisher details |
-| `excludePackages` | `(string \| Function)[]` | `[]` | Exclude listed packages from output |
-| `policy` | `Policy \| string` | `{ preset: "commercial" }` | License compliance policy |
-| `unknownLicense` | `'ignore' \| 'warn' \| 'error'` | `'warn'` | How to handle UNKNOWN licenses |
-| `missingLicense` | `'ignore' \| 'warn' \| 'error'` | `'warn'` | How to handle packages with no license info |
-| `cache` | `boolean` | `true` | Reuse the in-memory license database |
-| `workspaceRoot` | `string` | Bundler's root context | Root path for license scanning |
-| `recorder` | `Recorder` | — | External recorder shared across compiler instances (webpack only) |
-| `recordOnly` | `boolean` | `false` | Record findings without emitting (webpack multi-compiler only) |
-| `waitForRecorderCount` | `number` | — | Wait for N reports before emitting combined asset (webpack only) |
+| Option                 | Type                                      | Default                    | Description                                                       |
+| ---------------------- | ----------------------------------------- | -------------------------- | ----------------------------------------------------------------- |
+| `filename`             | `string`                                  | `licenses.txt`             | Output asset name                                                 |
+| `format`               | `'txt' \| 'json' \| 'markdown' \| 'html'` | `txt`                      | Output format                                                     |
+| `includeLicenseText`   | `boolean`                                 | `true`                     | Include license text when supported                               |
+| `includeRepository`    | `boolean`                                 | `true`                     | Include repository URLs                                           |
+| `includeHomepage`      | `boolean`                                 | `true`                     | Include homepage URLs                                             |
+| `includeAuthor`        | `boolean`                                 | `true`                     | Include author/publisher details                                  |
+| `excludePackages`      | `(string \| Function)[]`                  | `[]`                       | Exclude listed packages from output                               |
+| `policy`               | `Policy \| string`                        | `{ preset: "commercial" }` | License compliance policy                                         |
+| `unknownLicense`       | `'ignore' \| 'warn' \| 'error'`           | `'warn'`                   | How to handle UNKNOWN licenses                                    |
+| `missingLicense`       | `'ignore' \| 'warn' \| 'error'`           | `'warn'`                   | How to handle packages with no license info                       |
+| `cache`                | `boolean`                                 | `true`                     | Reuse the in-memory license database                              |
+| `workspaceRoot`        | `string`                                  | Bundler's root context     | Root path for license scanning                                    |
+| `recorder`             | `Recorder`                                | —                          | External recorder shared across compiler instances (webpack only) |
+| `recordOnly`           | `boolean`                                 | `false`                    | Record findings without emitting (webpack multi-compiler only)    |
+| `waitForRecorderCount` | `number`                                  | —                          | Wait for N reports before emitting combined asset (webpack only)  |
 
 > **Note:** `recorder`, `recordOnly`, and `waitForRecorderCount` are webpack-only options and are not available in the Vite plugin.
 
@@ -104,33 +104,37 @@ The plugin starts with the set of dependency entries detected from the bundler's
 
 ```js
 new LicenseWebpackPlugin({
-  excludePackages: ['react-dom'],
+  excludePackages: ["react-dom"],
 });
 ```
 
 ## Output formats
 
 ### TXT
+
 Human-readable notice file for app distribution.
 
 ### JSON
+
 Machine-readable output for CI, audits, and internal tooling.
 
 ### Markdown
+
 Useful for GitHub releases or repository documentation.
 
 ### HTML
+
 Useful for Electron about pages and in-app license views.
 
 ## License Compliance
 
 The plugin includes a built-in compliance engine that evaluates each bundled package's license against a configurable **Policy**. Each package gets one of three statuses:
 
-| Status   | Description                     |
-|----------|---------------------------------|
-| `PASS`   | License satisfies the policy    |
-| `REVIEW` | Requires manual review          |
-| `FAIL`   | License does not comply         |
+| Status   | Description                  |
+| -------- | ---------------------------- |
+| `PASS`   | License satisfies the policy |
+| `REVIEW` | Requires manual review       |
+| `FAIL`   | License does not comply      |
 
 The overall build result follows the worst status: any `FAIL` stops the build; `REVIEW` packages produce warnings (but do not fail).
 
@@ -141,30 +145,30 @@ A `Policy` can reference a built-in preset, or define custom `allow`/`review`/`d
 ```ts
 interface Policy {
   preset?: Preset;
-  allow?: string[];   // licenses that always PASS
-  review?: string[];  // licenses flagged for manual review
-  deny?: string[];    // licenses that FAIL
+  allow?: string[]; // licenses that always PASS
+  review?: string[]; // licenses flagged for manual review
+  deny?: string[]; // licenses that FAIL
 }
 ```
 
 #### Built-in presets
 
-| Preset       | Description                                      |
-|--------------|--------------------------------------------------|
-| `commercial` | Default. Permissive + weak copyleft allowed; strong copyleft denied |
-| `permissive` | Only permissive licenses allowed; everything else requires review |
-| `enterprise` | Only permissive licenses allowed; all copyleft denied (strong + weak) |
-| `oss`        | All licenses allowed (no restrictions)           |
+| Preset       | Description                                                              |
+| ------------ | ------------------------------------------------------------------------ |
+| `commercial` | Default. Permissive + weak copyleft allowed; strong copyleft denied      |
+| `permissive` | Only permissive licenses allowed; everything else requires review        |
+| `enterprise` | Only permissive licenses allowed; all copyleft denied (strong + weak)    |
+| `oss`        | All licenses allowed (no restrictions)                                   |
 | `strict`     | Whitelist mode. Only `allow`-listed licenses pass; everything else fails |
-| `none`       | No compliance checks (all packages pass)         |
+| `none`       | No compliance checks (all packages pass)                                 |
 
 #### Preset license categories
 
-| Category        | Licenses                                                                                        |
-|-----------------|-------------------------------------------------------------------------------------------------|
-| **Permissive**  | MIT, MIT-0, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, CC0-1.0, Unlicense, 0BSD, BSL-1.0, Zlib, Artistic-2.0, Python-2.0, WTFPL, CC-BY-4.0, BlueOak-1.0.0, Unicode-DFS-2015, NCSA |
-| **Weak copyleft** | LGPL-2.1\*, LGPL-3.0\*, MPL-2.0, EPL-1.0, EPL-2.0, CDDL-1.0, EUPL-1.2, PostgreSQL                |
-| **Strong copyleft** | GPL-2.0\*, GPL-3.0\*, AGPL-1.0, AGPL-3.0\*, SSPL-1.0, OSL-3.0, RPL-1.5                            |
+| Category            | Licenses                                                                                                                                                                            |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Permissive**      | MIT, MIT-0, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, CC0-1.0, Unlicense, 0BSD, BSL-1.0, Zlib, Artistic-2.0, Python-2.0, WTFPL, CC-BY-4.0, BlueOak-1.0.0, Unicode-DFS-2015, NCSA |
+| **Weak copyleft**   | LGPL-2.1\*, LGPL-3.0\*, MPL-2.0, EPL-1.0, EPL-2.0, CDDL-1.0, EUPL-1.2, PostgreSQL                                                                                                   |
+| **Strong copyleft** | GPL-2.0\*, GPL-3.0\*, AGPL-1.0, AGPL-3.0\*, SSPL-1.0, OSL-3.0, RPL-1.5                                                                                                              |
 
 > \* Licenses marked with `*` also include their `-only` and `-or-later` SPDX variants (e.g. `GPL-3.0-only`, `AGPL-3.0-or-later`).
 
@@ -173,28 +177,28 @@ interface Policy {
 ```js
 // Use a preset
 new LicenseWebpackPlugin({
-  policy: { preset: 'commercial' },
+  policy: { preset: "commercial" },
 });
 
 // Custom allow/deny lists
 new LicenseWebpackPlugin({
   policy: {
-    allow: ['MIT', 'Apache-2.0'],
-    deny: ['GPL-3.0', 'AGPL-3.0'],
+    allow: ["MIT", "Apache-2.0"],
+    deny: ["GPL-3.0", "AGPL-3.0"],
   },
 });
 
 // Override preset with custom lists
 new LicenseWebpackPlugin({
   policy: {
-    preset: 'commercial',
-    allow: ['MIT', 'Apache-2.0'],  // overrides the preset's allow list
+    preset: "commercial",
+    allow: ["MIT", "Apache-2.0"], // overrides the preset's allow list
   },
 });
 
 // Whitelist mode (strict)
 new LicenseWebpackPlugin({
-  policy: { preset: 'strict', allow: ['MIT', 'Apache-2.0'] },
+  policy: { preset: "strict", allow: ["MIT", "Apache-2.0"] },
 });
 ```
 
@@ -208,15 +212,15 @@ The engine fully respects SPDX License Expressions:
 
 ### Unknown / missing licenses
 
-| Option | Values | Default | Description |
-|---|---|---|---|
-| `unknownLicense` | `'ignore'` / `'warn'` / `'error'` | `'warn'` | How to treat UNKNOWN licenses |
+| Option           | Values                            | Default  | Description                                |
+| ---------------- | --------------------------------- | -------- | ------------------------------------------ |
+| `unknownLicense` | `'ignore'` / `'warn'` / `'error'` | `'warn'` | How to treat UNKNOWN licenses              |
 | `missingLicense` | `'ignore'` / `'warn'` / `'error'` | `'warn'` | How to treat packages without license info |
 
 ```js
 new LicenseWebpackPlugin({
-  unknownLicense: 'error',   // fail on unknown licenses
-  missingLicense: 'ignore',  // silently skip packages with no license field
+  unknownLicense: "error", // fail on unknown licenses
+  missingLicense: "ignore", // silently skip packages with no license field
 });
 ```
 
@@ -225,14 +229,17 @@ new LicenseWebpackPlugin({
 When using webpack's [multi-compiler](https://webpack.js.org/configuration/configuration-types/#exporting-multiple-configurations) mode (an array of configurations) each compiler runs independently. The `recorder` option lets all instances share a single `DefaultRecorder` so that one primary instance can merge all their findings and emit a single combined license file.
 
 ```js
-const { LicenseWebpackPlugin, DefaultRecorder } = require('license-checker-plugin');
+const {
+  LicenseWebpackPlugin,
+  DefaultRecorder,
+} = require("license-checker-plugin");
 
 const sharedRecorder = new DefaultRecorder();
 
 module.exports = [
   {
-    name: 'renderer',
-    entry: './src/renderer/index.js',
+    name: "renderer",
+    entry: "./src/renderer/index.js",
     plugins: [
       new LicenseWebpackPlugin({
         recorder: sharedRecorder,
@@ -241,11 +248,11 @@ module.exports = [
     ],
   },
   {
-    name: 'main',
-    entry: './src/main/index.js',
+    name: "main",
+    entry: "./src/main/index.js",
     plugins: [
       new LicenseWebpackPlugin({
-        filename: 'third-party-licenses.txt',
+        filename: "third-party-licenses.txt",
         recorder: sharedRecorder,
         waitForRecorderCount: 2,
       }),
@@ -260,7 +267,10 @@ module.exports = [
 export interface Recorder {
   record(report: LicenseBuildReport): void;
   getReports(): LicenseBuildReport[];
-  waitForReports(expectedCount?: number, timeoutMs?: number): Promise<LicenseBuildReport[]>;
+  waitForReports(
+    expectedCount?: number,
+    timeoutMs?: number,
+  ): Promise<LicenseBuildReport[]>;
 }
 ```
 
@@ -277,7 +287,7 @@ webpack/Rspack plugin (class, use with `new`).
 Vite plugin (function, returns a plugin object).
 
 ```ts
-import { viteLicensePlugin } from 'license-checker-plugin';
+import { viteLicensePlugin } from "license-checker-plugin";
 ```
 
 ### `LicensePluginCore`
@@ -285,7 +295,7 @@ import { viteLicensePlugin } from 'license-checker-plugin';
 Framework-agnostic core that can be used to build adapters for other bundlers.
 
 ```ts
-import { LicensePluginCore } from 'license-checker-plugin';
+import { LicensePluginCore } from "license-checker-plugin";
 ```
 
 ### `DefaultRecorder`
