@@ -210,10 +210,11 @@ export class LicensePluginCore {
       let licenseInfo = this.db.getLicense(pkgInfo.name, pkgInfo.version);
 
       if (licenseInfo.license === 'UNKNOWN') {
-        if (pkgInfo.license) {
+        // For packages missing from the database scan, read package metadata
+        // directly so includeLicenseText still works.
+        licenseInfo = this.readLicenseFromPackage(pkgInfo);
+        if (licenseInfo.license === 'UNKNOWN' && pkgInfo.license) {
           licenseInfo = { license: pkgInfo.license };
-        } else {
-          licenseInfo = this.readLicenseFromPackage(pkgInfo);
         }
       }
 

@@ -33,7 +33,10 @@ function prepareOutputDir(name: string): string {
 }
 
 const WORKSPACE_ROOT = path.resolve(__dirname, '../../..');
-const CORE_UTIL_IS_DIR = path.join(WORKSPACE_ROOT, 'node_modules', 'core-util-is');
+// The fake `core-util-is` package used by the snapshot test lives under the
+// test fixtures directory instead of the real `node_modules/`, so tests never
+// mutate (or delete) shared dependency state.
+const CORE_UTIL_IS_DIR = path.resolve(__dirname, '../fixtures/node_modules/core-util-is');
 
 describe('LicenseWebpackPlugin integration', () => {
   afterAll(() => {
@@ -522,7 +525,7 @@ describe('LicenseWebpackPlugin integration', () => {
     fs.mkdirSync(path.join(CORE_UTIL_IS_DIR, 'lib'), { recursive: true });
     fs.writeFileSync(path.join(CORE_UTIL_IS_DIR, 'package.json'), JSON.stringify({
       name: 'core-util-is',
-      version: '1.0.3',
+      version: '1.0.3-fixture',
       license: 'MIT',
       main: 'lib/util.js',
     }));

@@ -4,7 +4,7 @@ exports[`LicenseWebpackPlugin integration generates txt output snapshot for core
 "# THIRD-PARTY LICENSES
 
 Package Name : core-util-is
-Version      : 1.0.3
+Version      : 1.0.3-fixture
 License      : MIT
 Direct       : false
 
